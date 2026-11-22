@@ -634,6 +634,7 @@
     $('#btnRescan').onclick = enterScan;
     $('#tab3d').onclick = function () { tab(true); };
     $('#tabNet').onclick = function () { tab(false); };
+    if (window.RCSGuide) RCSGuide.render($('#guideBody'));
     show('home'); solver.init();
   }
   function tab(is3d) {
