@@ -206,3 +206,8 @@ details.card[open]>summary{margin-bottom:8px}
 .gtab th,.gtab td{border:1.5px solid var(--line);padding:6px;vertical-align:top;text-align:left}
 .gtab th{background:#efe9da}
 @media (max-width:420px){.gcards{grid-template-columns:repeat(2,1fr)}.gcards.e{grid-template-columns:repeat(2,1fr)}}
+
+.scene.g3{--s:clamp(120px,34vw,170px);width:min(100%,260px);margin:0 auto;height:calc(var(--s)*1.7)}
+.st.lab{font:700 11px/1.1 'Prompt',sans-serif;color:var(--ink);cursor:default;text-shadow:0 0 3px #fff;padding:2px}
+.st.lab::after{display:none}
+.ctr-note{text-align:center}

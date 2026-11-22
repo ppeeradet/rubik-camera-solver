@@ -634,7 +634,16 @@
     $('#btnRescan').onclick = enterScan;
     $('#tab3d').onclick = function () { tab(true); };
     $('#tabNet').onclick = function () { tab(false); };
-    if (window.RCSGuide) RCSGuide.render($('#guideBody'));
+    if (window.RCSGuide) {
+      RCSGuide.render($('#guideBody'));
+      var gc = makeCube3d($('#guideCube'), $('#guideScene'), null), gcol = [], lab = { U: 'บน', R: 'ขวา', F: 'หน้า', D: 'ล่าง', L: 'ซ้าย', B: 'หลัง' };
+      FACES.forEach(function (f, fi) {
+        for (var j = 0; j < 9; j++) gcol[fi * 9 + j] = COLORS[DEFAULT_SCHEME[f]].hex;
+        var c = gc.els[fi * 9 + 4]; c.classList.add('lab'); c.textContent = lab[f] + ' ' + COLORS[DEFAULT_SCHEME[f]].th;
+      });
+      gc.colors(gcol); gc.set(-24, -32);
+      $('#guideReset').onclick = function () { gc.set(-24, -32); };
+    }
     show('home'); solver.init();
   }
   function tab(is3d) {
