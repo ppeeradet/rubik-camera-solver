@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>แก้รูบิคด้วยกล้อง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@600;700;800&family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<style>:root{
+  --ink:#1c2230; --paper:#fbf9f4; --card:#ffffff; --line:#e2dccb; --mute:#4a4f5c;
+  --Y:#dfe51a; --B:#0aa2bb; --R:#c21d2c; --W:#f2f5f3; --O:#e8570c; --G:#46d41e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:'Noto Sans Thai',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100vh}
+[hidden]{display:none !important}
+h1,h2,.btn,.logo-t,.choiceT,.tab{font-family:'Prompt','Noto Sans Thai',system-ui,sans-serif}
+.stripe{display:flex;height:9px}.stripe i{flex:1}
+.app{max-width:520px;margin:0 auto;padding:10px 16px calc(24px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.logo{display:flex;align-items:center;gap:8px;background:none;border:0;padding:4px 0;cursor:pointer;color:var(--ink)}
+.logo-t{font-weight:800;font-size:17px}
+.mini{display:grid;grid-template-columns:repeat(3,9px);gap:1.5px;background:var(--ink);padding:1.5px;border-radius:3px}
+.mini i{display:block;width:9px;height:9px}
+.solverState{font-size:12px;color:var(--mute);background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:2px 10px}
+.solverState.ok{color:#14532d;border-color:#86d97b;background:#effbe9}
+.screen{display:flex;flex-direction:column;gap:12px}
+h1{margin:6px 0 0;font-size:30px;font-weight:800;line-height:1.2}
+h1.h1s{font-size:24px}
+h2{margin:0 0 6px;font-size:16px;font-weight:700}
+.lead{margin:0;font-size:15px;line-height:1.6;color:#2d3340}
+.note{margin:0;font-size:13px;line-height:1.5;color:var(--mute)}
+.err{margin:0;font-size:14px;line-height:1.5;color:#9b1c1c;font-weight:600;min-height:0}
+.err:empty{display:none}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px}
+.card ul{margin:0;padding-left:20px;font-size:14px;line-height:1.7}
+.card p{margin:0;font-size:14px;line-height:1.6}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:flex;align-items:center;justify-content:center;text-align:center;min-height:50px;padding:8px 14px;border-radius:12px;border:2px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;font-size:16px;cursor:pointer;line-height:1.25}
+.btn.primary{background:var(--Y)}
+.btn.ghost{background:transparent;border-color:#b9b19b;color:#33394a}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.choice:focus-visible,.tab:focus-visible,.st:focus-visible,.sw:focus-visible,.view:focus-visible{outline:3px solid #1f6feb;outline-offset:2px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:14px;border:2px solid var(--ink);border-radius:16px;background:#fff;cursor:pointer;color:var(--ink);min-height:170px}
+.choice:first-child{background:var(--Y)}
+.choice:last-child{background:var(--B)}
+.choiceNo{width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+.choiceT{font-weight:800;font-size:18px;line-height:1.25}
+.choiceD{font-size:13.5px;line-height:1.5}
+.tips h2{margin-bottom:4px}
+
+/* ขั้นตอนสแกน */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{flex:1;min-width:44px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px;border:2px solid var(--line);border-radius:10px;background:#fff;font-size:12px;color:var(--mute);cursor:pointer;font-family:inherit}
+.chip b{font-family:'Prompt',sans-serif;font-size:16px;color:var(--ink)}
+.chip.on{border-color:var(--ink);background:var(--Y)}
+.chip.on b{color:var(--ink)}
+.chip.done{border-color:#86d97b;background:#effbe9}
+.instr h2{font-size:17px}
+.stage{position:relative;width:100%;aspect-ratio:1/1;background:#11151f;border-radius:16px;overflow:hidden;border:2px solid var(--ink)}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#11151f}
+.stage canvas{display:none}
+.stage.shot canvas{display:block}.stage.shot video{display:none}
+.stage.idle video,.stage.idle canvas{display:none}
+.stageMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:#d6dbe6;font-size:15px;line-height:1.6}
+.stage.live .stageMsg,.stage.shot .stageMsg{display:none}
+.gridbox{position:absolute;display:none;border:3px solid #fff;box-shadow:0 0 0 2px #1c2230,0 0 0 9999px rgba(10,14,22,.45);border-radius:6px;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);touch-action:none}
+.gridbox i{border:1.5px solid rgba(255,255,255,.85)}
+.stage.live .gridbox,.stage.shot .gridbox{display:grid}
+.stage.shot .gridbox{cursor:move}
+.swatches{display:grid;grid-template-columns:repeat(3,44px);gap:4px;justify-content:center;background:var(--ink);padding:4px;border-radius:8px;width:max-content;margin:0 auto}
+.swatches i{display:block;width:44px;height:44px;border-radius:5px}
+.slider{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--mute)}
+.slider input{flex:1;min-height:32px}
+
+/* แผ่นคลี่ */
+.net{display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(9,1fr);gap:0;width:100%;aspect-ratio:12/9}
+.net i{display:flex;align-items:center;justify-content:center;border:1.5px solid var(--ink);border-radius:4px;margin:1px;background:#cfd5db;font-style:normal;font-family:'Prompt',sans-serif;font-weight:800;font-size:clamp(11px,3.4vw,16px);color:var(--ink);line-height:1}
+.net.tap i{cursor:pointer}
+.net i.ctr::after{content:"";width:28%;height:28%;border-radius:50%;background:rgba(28,34,48,.55)}
+.net i.hl{outline:3px solid #1f6feb;outline-offset:-1px;z-index:1}
+.net i.hl.ctr::after{display:none}
+.net i.fade{opacity:.55}
+
+/* ตั้งสี/ตรวจสี */
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#efe9da;padding:4px;border-radius:12px}
+.tab{min-height:42px;border:0;border-radius:9px;background:transparent;font-weight:700;font-size:15px;color:#4a4f5c;cursor:pointer}
+.tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.scene{height:300px;perspective:900px;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;overflow:hidden}
+.scene:active{cursor:grabbing}
+.cube3d{--s:210px;width:var(--s);height:var(--s);position:relative;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.cube3d.drag{transition:none}
+.cf{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:5px;padding:5px;background:var(--ink);border-radius:12px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.cf.F{transform:translateZ(calc(var(--s)/2))}
+.cf.B{transform:rotateY(180deg) translateZ(calc(var(--s)/2))}
+.cf.R{transform:rotateY(90deg) translateZ(calc(var(--s)/2))}
+.cf.L{transform:rotateY(-90deg) translateZ(calc(var(--s)/2))}
+.cf.U{transform:rotateX(90deg) translateZ(calc(var(--s)/2))}
+.cf.D{transform:rotateX(-90deg) translateZ(calc(var(--s)/2))}
+.st{border-radius:9px;background:#cfd5db;border:0;padding:0;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;font:700 22px 'Prompt',sans-serif;color:var(--ink)}
+.st.ctr::after{content:"";width:24%;height:24%;border-radius:50%;background:rgba(28,34,48,.55)}
+.st.ctr{cursor:default}
+.views{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}
+.view{min-height:42px;border:2px solid var(--line);border-radius:10px;background:#fff;font:700 14px 'Prompt',sans-serif;color:var(--ink);cursor:pointer;padding:0 2px}
+.view.on{border-color:var(--ink);background:var(--Y)}
+.palette{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.sw{min-height:50px;border:3px solid transparent;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:700 11px 'Prompt',sans-serif;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink);padding:2px}
+.sw[aria-checked="true"]{border-color:#1f6feb;box-shadow:inset 0 0 0 2px var(--ink),0 0 0 2px #fff,0 0 0 4px #1f6feb}
+.sw.erase{background:repeating-linear-gradient(45deg,#fff,#fff 6px,#e6e1d4 6px,#e6e1d4 12px)}
+.counts{display:flex;flex-wrap:wrap;gap:6px}
+.cnt{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:20px;padding:2px 10px 2px 4px;background:#fff;font-size:13px}
+.cnt i{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--ink)}
+.cnt.ok{border-color:#86d97b;background:#effbe9}
+.cnt.bad{border-color:#e9a0a0;background:#fdf0f0}
+
+/* วิธีแก้ */
+.hold{display:flex;gap:10px;align-items:center;font-size:14px;line-height:1.55}
+.hold .sq{width:22px;height:22px;border:2px solid var(--ink);border-radius:5px;flex:none}
+.hold span.hi{display:inline-flex;align-items:center;gap:5px;font-weight:700;vertical-align:middle}
+.move{background:#fff;border:2px solid var(--ink);border-radius:16px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center}
+.moveStep{grid-column:1/-1;font-size:13px;color:var(--mute)}
+.moveTile{grid-row:2/4}
+.moveText{font-size:16px;font-weight:700;line-height:1.4}
+.moveNext{font-size:13px;color:var(--mute);display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.m{display:inline-flex;align-items:flex-start;justify-content:center;width:30px;height:34px;padding-top:4px;border-radius:8px;border:2px solid var(--ink);font:700 18px/1.2 'JetBrains Mono','Courier New',monospace;color:var(--ink)}
+.m sup{font-size:12px;line-height:1;margin-top:-1px}
+.m.big{width:68px;height:76px;font-size:38px;padding-top:8px;border-radius:14px;border-width:3px}
+.m.big sup{font-size:24px}
+.m.sm{width:24px;height:28px;font-size:14px;padding-top:3px;border-radius:6px;border-width:1.5px}
+.bar{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.moves{display:flex;flex-wrap:wrap;gap:6px}
+.moves button{padding:0;border:0;background:none;cursor:pointer}
+.moves .m{opacity:.55}
+.moves .m.past{opacity:.3}
+.moves .cur .m{opacity:1;box-shadow:0 0 0 3px #1f6feb}
+.foot{margin-top:18px;font-size:12px;color:var(--mute);text-align:center;line-height:1.5}
+
+@media (max-width:380px){
+  .choices{grid-template-columns:1fr}
+  .choice{min-height:0}
+}
+@media (prefers-reduced-motion:reduce){.cube3d{transition:none}}
+</style>
+</head>
+<body>
+<div class="stripe" aria-hidden="true"><i style="background:#dfe51a"></i><i style="background:#0aa2bb"></i><i style="background:#c21d2c"></i><i style="background:#f2f5f3"></i><i style="background:#e8570c"></i><i style="background:#46d41e"></i></div>
+<div class="app">
+  <header class="top">
+    <button class="logo" id="goHome" type="button" aria-label="กลับหน้าแรก">
+      <span class="mini" aria-hidden="true"><i style="background:#dfe51a"></i><i style="background:#dfe51a"></i><i style="background:#c21d2c"></i><i style="background:#0aa2bb"></i><i style="background:#dfe51a"></i><i style="background:#c21d2c"></i><i style="background:#0aa2bb"></i><i style="background:#0aa2bb"></i><i style="background:#c21d2c"></i></span>
+      <span class="logo-t">แก้รูบิคด้วยกล้อง</span>
+    </button>
+    <span class="solverState" id="solverState" role="status">กำลังเตรียมตัวแก้…</span>
+  </header>
+
+  <!-- 1. หน้าแรก -->
+  <section id="screen-home" class="screen">
+    <h1>ถ่ายรูปรูบิค<br>แล้วให้แอปบอกวิธีแก้</h1>
+    <p class="lead">ถ่ายรูปทั้ง 6 ด้าน แอปจะอ่านสีให้ ให้คุณตรวจแก้ได้ แล้วบอกวิธีหมุนทีละตาจนเสร็จ ทุกอย่างคำนวณในเครื่อง ไม่ส่งรูปไปที่ไหน</p>
+    <div class="choices">
+      <button class="choice" id="btnStart" type="button">
+        <span class="choiceNo">1</span>
+        <span class="choiceT">ใช้กล้องสแกน</span>
+        <span class="choiceD">ถ่ายรูปทีละด้าน แอปอ่านสีให้ แล้วตรวจแก้ได้</span>
+      </button>
+      <button class="choice" id="btnManual" type="button">
+        <span class="choiceNo">2</span>
+        <span class="choiceT">ตั้งสีเองบนโมเดล</span>
+        <span class="choiceD">หมุนโมเดลลูกบาศก์ แล้วแตะแต่ละช่องเพื่อใส่สี</span>
+      </button>
+    </div>
+    <button class="btn ghost" id="btnDemo" type="button">ลองด้วยลูกตัวอย่าง</button>
+    <div class="card tips">
+      <h2>ก่อนถ่าย</h2>
+      <ul>
+        <li>ใช้แสงสว่างสม่ำเสมอ หลีกเลี่ยงแสงสะท้อนบนสติกเกอร์</li>
+        <li>ถ่ายให้รูบิคเต็มกรอบ 3×3 บนหน้าจอ</li>
+        <li>ถือลูกในท่าเริ่มต้นแล้วหมุนตามที่แอปบอกทีละด้าน</li>
+        <li>อ่านสีผิดไม่เป็นไร แตะช่องเพื่อแก้ได้ก่อนคำนวณ</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2. สแกน -->
+  <section id="screen-scan" class="screen" hidden>
+    <div class="chips" id="chips" role="list"></div>
+    <div class="card instr">
+      <h2 id="instrTitle"></h2>
+      <p id="instrText"></p>
+    </div>
+
+    <div class="stage" id="stage">
+      <video id="video" playsinline muted autoplay></video>
+      <canvas id="still" width="720" height="720"></canvas>
+      <div class="gridbox" id="gridbox" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="stageMsg" id="stageMsg">กดเปิดกล้อง หรือเลือกรูปที่ถ่ายไว้</div>
+    </div>
+    <p class="note" id="camMsg" role="status"></p>
+
+    <div class="stack" id="ctlIdle">
+      <button class="btn primary" id="btnCam" type="button">เปิดกล้อง</button>
+      <div class="row2">
+        <label class="btn" for="fileCam">ถ่ายด้วยกล้องมือถือ</label>
+        <label class="btn" for="filePick">เลือกรูป</label>
+      </div>
+      <input id="fileCam" type="file" accept="image/*" capture="environment" hidden>
+      <input id="filePick" type="file" accept="image/*" hidden>
+    </div>
+    <div class="stack" id="ctlLive" hidden>
+      <button class="btn primary" id="btnShot" type="button">ถ่ายภาพด้านนี้</button>
+      <button class="btn ghost" id="btnStopCam" type="button">ปิดกล้อง</button>
+    </div>
+    <div class="stack" id="ctlShot" hidden>
+      <div class="swatches" id="swatches" aria-label="สีที่อ่านได้จากภาพ"></div>
+      <label class="slider">ขนาดกริด
+        <input type="range" id="sizeRange" min="30" max="95" value="62">
+      </label>
+      <p class="note">ลากกริดให้ตรงกับรูบิค ปรับขนาดให้พอดี ช่องสีด้านบนคือสีที่อ่านได้</p>
+      <div class="row2">
+        <button class="btn" id="btnRetake" type="button">ถ่ายใหม่</button>
+        <button class="btn primary" id="btnUse" type="button">ใช้ภาพนี้</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>ด้านที่สแกนแล้ว</h2>
+      <div class="net" id="scanNet"></div>
+    </div>
+  </section>
+
+  <!-- 3. ตั้งค่า/ตรวจสี -->
+  <section id="screen-edit" class="screen" hidden>
+    <h1 class="h1s" id="editTitle">ตั้งสีของรูบิค</h1>
+    <p class="lead" id="editLead">เลือกสีจากแถบสี แล้วแตะช่องบนโมเดลเพื่อใส่สี ลากเพื่อหมุนโมเดล ช่องตรงกลางของแต่ละด้านคงที่</p>
+    <div class="tabs" role="tablist">
+      <button class="tab on" id="tab3d" role="tab" type="button">โมเดล 3 มิติ</button>
+      <button class="tab" id="tabNet" role="tab" type="button">แผ่นคลี่</button>
+    </div>
+    <div class="card" id="pane3d">
+      <div class="scene" id="scene"><div class="cube3d" id="cube3d"></div></div>
+      <div class="views" id="views" role="group" aria-label="เลือกด้านที่ต้องการดู"></div>
+    </div>
+    <div class="card" id="paneNet" hidden><div class="net" id="editNet"></div></div>
+    <div class="palette" id="palette" role="radiogroup" aria-label="เลือกสีที่จะใส่"></div>
+    <div class="counts" id="counts"></div>
+    <p class="err" id="editErr" role="alert"></p>
+    <div class="stack">
+      <button class="btn primary" id="btnSolve" type="button">คำนวณวิธีแก้</button>
+      <div class="row2">
+        <button class="btn" id="btnClear" type="button">ล้างสีทั้งหมด</button>
+        <button class="btn ghost" id="btnRescan" type="button">กลับไปสแกน</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. วิธีแก้ -->
+  <section id="screen-solve" class="screen" hidden>
+    <div class="card hold" id="holdHint"></div>
+    <div class="card"><div class="net" id="solveNet"></div></div>
+    <div class="move" id="moveBox" aria-live="polite">
+      <div class="moveStep" id="moveStep"></div>
+      <div class="moveTile" id="moveTile"></div>
+      <div class="moveText" id="moveText"></div>
+      <div class="moveNext" id="moveNext"></div>
+    </div>
+    <div class="bar">
+      <button class="btn" id="btnPrev" type="button" aria-label="ย้อนกลับ 1 ตา">ย้อนกลับ</button>
+      <button class="btn primary" id="btnNext" type="button">ตาถัดไป</button>
+    </div>
+    <div class="row2">
+      <button class="btn" id="btnPlay" type="button">เล่นอัตโนมัติ</button>
+      <button class="btn ghost" id="btnReset" type="button">กลับไปตาแรก</button>
+    </div>
+    <div class="card">
+      <h2>ทุกตาที่ต้องหมุน</h2>
+      <div class="moves" id="movesList"></div>
+    </div>
+    <button class="btn ghost" id="btnAgain" type="button">แก้ลูกใหม่</button>
+  </section>
+
+  <footer class="foot">ตัวแก้: cubejs (MIT) · อัลกอริทึม Kociemba · ใช้ได้ทั้งออฟไลน์หลังโหลดหน้า</footer>
+</div>
+<script id="cubejs-src">var CubeLib=(()=>{var ze=(he,O)=>()=>{try{return O||he((O={exports:{}}).exports,O),O.exports}catch(J){throw O=0,J}};var qe=ze(($e,Ie)=>{(function(){var he,O,J,ce,L,ee,te,re,$,ne,ie,Q,oe,ve,se,ue,pe,fe,Fe,W,X,j,x,T,Y,Z,G,De,Oe,ge,we,ae,me;[Fe,fe,ve,L,pe,he]=[0,1,2,3,4,5],[G,x,Y,X,$,ie,te,oe]=[0,1,2,3,4,5,6,7],[Z,j,T,W,Q,re,ne,ee,ue,se,O,J]=[0,1,2,3,4,5,6,7,8,9,10,11],[Oe,we,me]=(function(){var H,q,I,g,S,f;return f=function(h){return h-1},S=function(h){return f(9)+h},I=function(h){return S(9)+h},q=function(h){return I(9)+h},g=function(h){return q(9)+h},H=function(h){return g(9)+h},[[4,13,22,31,40,49],[[f(9),S(1),I(3)],[f(7),I(1),g(3)],[f(1),g(1),H(3)],[f(3),H(1),S(3)],[q(3),I(9),S(7)],[q(1),g(9),I(7)],[q(7),H(9),g(7)],[q(9),S(9),H(7)]],[[f(6),S(2)],[f(8),I(2)],[f(4),g(2)],[f(2),H(2)],[q(6),S(8)],[q(2),I(8)],[q(4),g(8)],[q(8),H(8)],[I(6),S(4)],[I(4),g(6)],[H(6),g(4)],[H(4),S(6)]]]})(),De=["U","R","F","D","L","B"],ge=[["U","R","F"],["U","F","L"],["U","L","B"],["U","B","R"],["D","F","R"],["D","L","F"],["D","B","L"],["D","R","B"]],ae=[["U","R"],["U","F"],["U","L"],["U","B"],["D","R"],["D","F"],["D","L"],["D","B"],["F","R"],["F","L"],["B","L"],["B","R"]],ce=(function(){var H,q,I;class g{constructor(f){var h;f!=null?this.init(f):this.identity(),this.newCenter=(function(){var n,o;for(o=[],h=n=0;n<=5;h=++n)o.push(0);return o})(),this.newCp=(function(){var n,o;for(o=[],h=n=0;n<=7;h=++n)o.push(0);return o})(),this.newEp=(function(){var n,o;for(o=[],h=n=0;n<=11;h=++n)o.push(0);return o})(),this.newCo=(function(){var n,o;for(o=[],h=n=0;n<=7;h=++n)o.push(0);return o})(),this.newEo=(function(){var n,o;for(o=[],h=n=0;n<=11;h=++n)o.push(0);return o})()}init(f){return this.center=f.center.slice(0),this.co=f.co.slice(0),this.ep=f.ep.slice(0),this.cp=f.cp.slice(0),this.eo=f.eo.slice(0)}identity(){var f;return this.center=[0,1,2,3,4,5],this.cp=[0,1,2,3,4,5,6,7],this.co=(function(){var h,n;for(n=[],f=h=0;h<=7;f=++h)n.push(0);return n})(),this.ep=[0,1,2,3,4,5,6,7,8,9,10,11],this.eo=(function(){var h,n;for(n=[],f=h=0;h<=11;f=++h)n.push(0);return n})()}toJSON(){return{center:this.center,cp:this.cp,co:this.co,ep:this.ep,eo:this.eo}}asString(){var f,h,n,o,R,F,B,k,U,D,d;for(d=[],n=o=0;o<=5;n=++o)d[9*n+4]=De[this.center[n]];for(n=R=0;R<=7;n=++R)for(f=this.cp[n],U=this.co[n],B=F=0;F<=2;B=++F)d[we[n][(B+U)%3]]=ge[f][B];for(n=k=0;k<=11;n=++k)for(h=this.ep[n],U=this.eo[n],B=D=0;D<=1;B=++D)d[me[n][(B+U)%2]]=ae[h][B];return d.join("")}static fromString(f){var h,n,o,R,F,B,k,U,D,d,M,V,z,A;for(o=new g,R=B=0;B<=5;R=++B)for(F=k=0;k<=5;F=++k)f[9*R+4]===De[F]&&(o.center[R]=F);for(R=U=0;U<=7;R=++U){for(d=D=0;D<=2&&!((A=f[we[R][d]])==="U"||A==="D");d=++D);for(h=f[we[R][(d+1)%3]],n=f[we[R][(d+2)%3]],F=M=0;M<=7;F=++M)h===ge[F][1]&&n===ge[F][2]&&(o.cp[R]=F,o.co[R]=d%3)}for(R=V=0;V<=11;R=++V)for(F=z=0;z<=11;F=++z){if(f[me[R][0]]===ae[F][0]&&f[me[R][1]]===ae[F][1]){o.ep[R]=F,o.eo[R]=0;break}if(f[me[R][0]]===ae[F][1]&&f[me[R][1]]===ae[F][0]){o.ep[R]=F,o.eo[R]=1;break}}return o}clone(){return new g(this.toJSON())}static random(){return new g().randomize()}isSolved(){var f,h,n,o,R,F,B;for(n=this.clone(),n.move(n.upright()),h=R=0;R<=5;h=++R)if(n.center[h]!==h)return!1;for(f=F=0;F<=7;f=++F)if(n.cp[f]!==f||n.co[f]!==0)return!1;for(o=B=0;B<=11;o=++B)if(n.ep[o]!==o||n.eo[o]!==0)return!1;return!0}centerMultiply(f){var h,n,o;for(o=n=0;n<=5;o=++n)h=f.center[o],this.newCenter[o]=this.center[h];return[this.center,this.newCenter]=[this.newCenter,this.center],this}cornerMultiply(f){var h,n,o;for(o=n=0;n<=7;o=++n)h=f.cp[o],this.newCp[o]=this.cp[h],this.newCo[o]=(this.co[h]+f.co[o])%3;return[this.cp,this.newCp]=[this.newCp,this.cp],[this.co,this.newCo]=[this.newCo,this.co],this}edgeMultiply(f){var h,n,o;for(o=n=0;n<=11;o=++n)h=f.ep[o],this.newEp[o]=this.ep[h],this.newEo[o]=(this.eo[h]+f.eo[o])%2;return[this.ep,this.newEp]=[this.newEp,this.ep],[this.eo,this.newEo]=[this.newEo,this.eo],this}multiply(f){return this.centerMultiply(f),this.cornerMultiply(f),this.edgeMultiply(f),this}move(f){var h,n,o,R,F,B,k,U,D;for(k=I(f),n=0,R=k.length;n<R;n++)for(F=k[n],h=F/3|0,B=F%3,D=o=0,U=B;0<=U?o<=U:o>=U;D=0<=U?++o:--o)this.multiply(g.moves[h]);return this}upright(){var f,h,n,o,R,F;for(f=this.clone(),F=[],h=o=0;o<=5&&f.center[h]!==ve;h=++o);switch(h){case L:F.push("x");break;case Fe:F.push("x'");break;case he:F.push("x2");break;case fe:F.push("y");break;case pe:F.push("y'")}for(F.length&&f.move(F[0]),n=R=0;R<=5&&f.center[n]!==Fe;n=++R);switch(n){case pe:F.push("z");break;case fe:F.push("z'");break;case L:F.push("z2")}return F.join(" ")}static inverse(f){var h,n,o,R,F,B,k;if(B=(function(){var U,D,d,M;for(d=I(f),M=[],U=0,D=d.length;U<D;U++)R=d[U],h=R/3|0,F=R%3,M.push(h*3+-(F-1)+1);return M})(),B.reverse(),typeof f=="string"){for(k="",n=0,o=B.length;n<o;n++)R=B[n],h=R/3|0,F=R%3,k+=H[h],F===1?k+="2":F===2&&(k+="'"),k+=" ";return k.substring(0,k.length-1)}else return f.length!=null?B:B[0]}}return g.prototype.randomize=(function(){var S,f,h,n,o,R,F,B,k;return R=function(U,D){return U+Math.floor(Math.random()*(D-U+1))},k=function(U){var D,d,M;for(D=U.length;D!==0;)d=R(0,D-1),D-=1,M=U[D],[U[D],U[d]]=[U[d],U[D]]},n=function(U){var D,d,M,V,z,A,le,Le;for(z=0,le=(function(){var Re,Ue,Be;for(Be=[],Le=Re=0,Ue=U.length-1;0<=Ue?Re<=Ue:Re>=Ue;Le=0<=Ue?++Re:--Re)Be.push(!1);return Be})();;){for(D=-1,M=V=0,A=U.length-1;0<=A?V<=A:V>=A;M=0<=A?++V:--V)if(!le[M]){D=M;break}if(D===-1)break;for(d=0;!le[D];)le[D]=!0,d++,D=U[D];z+=d+1}return z},S=function(U,D){var d;return d=n(D)+n(U),d%2===0},h=function(U,D){for(k(D),k(U);!S(U,D);)k(D),k(U)},F=function(U,D){var d,M,V,z;for(V=0,d=M=0,z=U.length-1;0<=z?M<=z:M>=z;d=0<=z?++M:--M)V+=U[d]=R(0,D-1)},o=function(U,D){return U.reduce(function(d,M){return d+M})%D===0},f=function(U,D){for(F(U,3);!o(U,3);)F(U,3);for(F(D,2);!o(D,2);)F(D,2)},B=function(){return h(this.cp,this.ep),f(this.co,this.eo),this},B})(),g.moves=[{center:[0,1,2,3,4,5],cp:[X,G,x,Y,$,ie,te,oe],co:[0,0,0,0,0,0,0,0],ep:[W,Z,j,T,Q,re,ne,ee,ue,se,O,J],eo:[0,0,0,0,0,0,0,0,0,0,0,0]},{center:[0,1,2,3,4,5],cp:[$,x,Y,G,oe,ie,te,X],co:[2,0,0,1,1,0,0,2],ep:[ue,j,T,W,J,re,ne,ee,Q,se,O,Z],eo:[0,0,0,0,0,0,0,0,0,0,0,0]},{center:[0,1,2,3,4,5],cp:[x,ie,Y,X,G,$,te,oe],co:[1,2,0,0,2,1,0,0],ep:[Z,se,T,W,Q,ue,ne,ee,j,re,O,J],eo:[0,1,0,0,0,1,0,0,1,1,0,0]},{center:[0,1,2,3,4,5],cp:[G,x,Y,X,ie,te,oe,$],co:[0,0,0,0,0,0,0,0],ep:[Z,j,T,W,re,ne,ee,Q,ue,se,O,J],eo:[0,0,0,0,0,0,0,0,0,0,0,0]},{center:[0,1,2,3,4,5],cp:[G,Y,te,X,$,x,ie,oe],co:[0,1,2,0,0,2,1,0],ep:[Z,j,O,W,Q,re,se,ee,ue,T,ne,J],eo:[0,0,0,0,0,0,0,0,0,0,0,0]},{center:[0,1,2,3,4,5],cp:[G,x,X,oe,$,ie,Y,te],co:[0,0,1,2,0,0,2,1],ep:[Z,j,T,J,Q,re,ne,O,ue,se,W,ee],eo:[0,0,0,1,0,0,0,1,0,0,1,1]},{center:[Fe,ve,pe,L,he,fe],cp:[G,x,Y,X,$,ie,te,oe],co:[0,0,0,0,0,0,0,0],ep:[Z,j,T,W,Q,re,ne,ee,se,O,J,ue],eo:[0,0,0,0,0,0,0,0,1,1,1,1]},{center:[he,fe,Fe,ve,pe,L],cp:[G,x,Y,X,$,ie,te,oe],co:[0,0,0,0,0,0,0,0],ep:[Z,W,T,ee,Q,j,ne,re,ue,se,O,J],eo:[0,1,0,1,0,1,0,1,0,0,0,0]},{center:[pe,Fe,ve,fe,L,he],cp:[G,x,Y,X,$,ie,te,oe],co:[0,0,0,0,0,0,0,0],ep:[T,j,ne,W,Z,re,Q,ee,ue,se,O,J],eo:[1,0,1,0,1,0,1,0,0,0,0,0]}],q={U:0,R:1,F:2,D:3,L:4,B:5,E:6,M:7,S:8,x:9,y:10,z:11,u:12,r:13,f:14,d:15,l:16,b:17},H={0:"U",1:"R",2:"F",3:"D",4:"L",5:"B",6:"E",7:"M",8:"S",9:"x",10:"y",11:"z",12:"u",13:"r",14:"f",15:"d",16:"l",17:"b"},I=function(S){var f,h,n,o,R,F,B;if(typeof S=="string"){for(F=S.split(/\s+/),B=[],f=0,h=F.length;f<h;f++)if(o=F[f],o.length!==0){if(o.length>2)throw new Error(`Invalid move: ${o}`);if(n=q[o[0]],n===void 0)throw new Error(`Invalid move: ${o}`);if(o.length===1)R=0;else if(o[1]==="2")R=1;else if(o[1]==="'")R=2;else throw new Error(`Invalid move: ${o}`);B.push(n*3+R)}return B}else return S.length!=null?S:[S]},g.moves.push(new g().move("R M' L'").toJSON()),g.moves.push(new g().move("U E' D'").toJSON()),g.moves.push(new g().move("F S B'").toJSON()),g.moves.push(new g().move("U E'").toJSON()),g.moves.push(new g().move("R M'").toJSON()),g.moves.push(new g().move("F S").toJSON()),g.moves.push(new g().move("D E").toJSON()),g.moves.push(new g().move("L M").toJSON()),g.moves.push(new g().move("B S'").toJSON()),g}).call(this),typeof Ie<"u"&&Ie!==null?Ie.exports=ce:this.Cube=ce}).call($e)});var Ye=ze(We=>{(function(){var he,O,J,ce,L,ee,te,re,$,ne,ie,Q,oe,ve,se,ue,pe,fe,Fe,W,X,j,x,T,Y,Z,G,De,Oe,ge,we,ae,me,H,q,I,g,S,f,h,n,o,R,F,B,k,U,D,d,M,V,z,A,le,Le,Re,Ue,Be,He=[].indexOf;L=this.Cube||qe(),[we,ge,se,ee,Fe,he]=[0,1,2,3,4,5],[f,q,g,me,ne,Q,re,ve]=[0,1,2,3,4,5,6,7],[S,H,I,ae,oe,$,ie,te,pe,ue,O,J]=[0,1,2,3,4,5,6,7,8,9,10,11],ce=function(t,r){var u,l,e;if(t<r)return 0;for(r>t/2&&(r=t-r),e=1,u=t,l=1;u!==t-r;)e*=u,e/=l,u--,l++;return e},k=function(t){var r,u,l,e;for(r=1,u=l=2,e=t;2<=e?l<=e:l>=e;u=2<=e?++l:--l)r*=u;return r},D=function(t,r){return t>r?t:r},Re=function(t,r,u){var l,e,i,c,v;for(v=t[r],l=e=i=r,c=u-1;i<=c?e<=c:e>=c;l=i<=c?++e:--e)t[l]=t[l+1];return t[u]=v},Ue=function(t,r,u){var l,e,i,c,v;for(v=t[u],l=e=i=u,c=r+1;i<=c?e<=c:e>=c;l=i<=c?++e:--e)t[l]=t[l-1];return t[r]=v},A=function(t,r,u,l=!1){var e,i,c,v,w,b;return v=u-r,c=k(v+1),t==="corners"?(i=7,b="cp"):(i=11,b="ep"),w=(function(){var N,m,s;for(s=[],e=N=0,m=v;0<=m?N<=m:N>=m;e=0<=m?++N:--N)s.push(0);return s})(),function(N){var m,s,p,a,y,C,P,E,_,de,ye,be,_e,ke,Me,Je,Se,je,Ve,Te,Ae,Ne,xe,Pe,K,Ce,Ee;if(N!=null){for(e=C=0,ye=v;0<=ye?C<=ye:C>=ye;e=0<=ye?++C:--C)w[e]=e+r;for(s=N%c,m=N/c|0,_=this[b],e=P=0,be=i;0<=be?P<=be:P>=be;e=0<=be?++P:--P)_[e]=-1;for(a=E=1,ke=v;1<=ke?E<=ke:E>=ke;a=1<=ke?++E:--E)for(y=s%(a+1),s=s/(a+1)|0;y>0;)Ue(w,0,a),y--;if(K=v,l)for(a=de=0,Me=i;0<=Me?de<=Me:de>=Me;a=0<=Me?++de:--de)p=ce(i-a,K+1),m-p>=0&&(_[a]=w[v-K],m-=p,K--);else for(a=Ne=Je=i;Je<=0?Ne<=0:Ne>=0;a=Je<=0?++Ne:--Ne)p=ce(a,K+1),m-p>=0&&(_[a]=w[K],m-=p,K--);return this}else{for(_=this[b],e=xe=0,Se=v;0<=Se?xe<=Se:xe>=Se;e=0<=Se?++xe:--xe)w[e]=-1;if(m=s=K=0,l)for(a=Pe=je=i;je<=0?Pe<=0:Pe>=0;a=je<=0?++Pe:--Pe)r<=(Ve=_[a])&&Ve<=u&&(m+=ce(i-a,K+1),w[v-K]=_[a],K++);else for(a=Ce=0,Te=i;0<=Te?Ce<=Te:Ce>=Te;a=0<=Te?++Ce:--Ce)r<=(Ae=_[a])&&Ae<=u&&(m+=ce(a,K+1),w[K]=_[a],K++);for(a=Ee=_e=v;_e<=0?Ee<=0:Ee>=0;a=_e<=0?++Ee:--Ee){for(y=0;w[a]!==r+a;)Re(w,0,a),y++;s=(a+1)*s+y}return m*c+s}}},fe={twist:function(t){var r,u,l,e,i,c;if(t!=null){for(i=0,r=u=6;u>=0;r=--u)e=t%3,t=t/3|0,this.co[r]=e,i+=e;return this.co[7]=(3-i%3)%3,this}else{for(c=0,r=l=0;l<=6;r=++l)c=3*c+this.co[r];return c}},flip:function(t){var r,u,l,e,i,c;if(t!=null){for(i=0,r=u=10;u>=0;r=--u)e=t%2,t=t/2|0,this.eo[r]=e,i+=e;return this.eo[11]=(2-i%2)%2,this}else{for(c=0,r=l=0;l<=10;r=++l)c=2*c+this.eo[r];return c}},cornerParity:function(){var t,r,u,l,e,i,c,v,w;for(w=0,t=u=e=ve,i=f+1;e<=i?u<=i:u>=i;t=e<=i?++u:--u)for(r=l=c=t-1,v=f;c<=v?l<=v:l>=v;r=c<=v?++l:--l)this.cp[r]>this.cp[t]&&w++;return w%2},edgeParity:function(){var t,r,u,l,e,i,c,v,w;for(w=0,t=u=e=J,i=S+1;e<=i?u<=i:u>=i;t=e<=i?++u:--u)for(r=l=c=t-1,v=S;c<=v?l<=v:l>=v;r=c<=v?++l:--l)this.ep[r]>this.ep[t]&&w++;return w%2},URFtoDLF:A("corners",f,Q),URtoUL:A("edges",S,I),UBtoDF:A("edges",ae,$),URtoDF:A("edges",S,$),FRtoBR:A("edges",pe,J,!0)};for(U in fe)Be=fe[U],L.prototype[U]=Be;o=function(t,r,u){var l,e,i,c,v,w,b,N,m,s,p,a;for(l=t==="corners"?"cornerMultiply":"edgeMultiply",e=new L,a=[],i=b=0,p=u-1;0<=p?b<=p:b>=p;i=0<=p?++b:--b){for(e[r](i),c=[],v=m=0;m<=5;v=++m){for(N=L.moves[v],w=s=0;s<=2;w=++s)e[l](N),c.push(e[r]());e[l](N)}a.push(c)}return a},d=(function(){var t,r;return t=new L,r=new L,function(u,l){var e,i;for(t.URtoUL(u),r.UBtoDF(l),e=i=0;i<=7;e=++i)if(t.ep[e]!==-1){if(r.ep[e]!==-1)return-1;r.ep[e]=t.ep[e]}return r.URtoDF()}})(),Y=2187,W=2048,j=2,X=11880,x=495,T=24,G=20160,De=20160,Oe=1320,Z=1320,L.moveTables={parity:[[1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0]],twist:null,flip:null,FRtoBR:null,URFtoDLF:null,URtoDF:null,URtoUL:null,UBtoDF:null,mergeURtoDF:null},M={twist:["corners",Y],flip:["edges",W],FRtoBR:["edges",X],URFtoDLF:["corners",G],URtoDF:["edges",De],URtoUL:["edges",Oe],UBtoDF:["edges",Z],mergeURtoDF:[]},L.computeMoveTables=function(...t){var r,u,l,e,i,c;for(t.length===0&&(t=(function(){var v;v=[];for(l in M)v.push(l);return v})()),u=0,r=t.length;u<r;u++)c=t[u],this.moveTables[c]===null&&(c==="mergeURtoDF"?this.moveTables.mergeURtoDF=(function(){var v,w,b,N;for(N=[],w=b=0;b<=335;w=++b)N.push((function(){var m,s;for(s=[],v=m=0;m<=335;v=++m)s.push(d(w,v));return s})());return N})():([e,i]=M[c],this.moveTables[c]=o(e,c,i)));return this},h=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],V=(function(){var t,r,u,l,e,i,c,v;for(v=[],r=u=0;u<=5;r=++u){for(l=[],t=e=0;e<=5;t=++e)if(t!==r&&t!==r-3)for(c=i=0;i<=2;c=++i)l.push(t*3+c);v.push(l)}return v})(),n=[0,1,2,4,7,9,10,11,13,16],z=(function(){var t,r,u,l,e,i,c,v,w,b;for(b=[],r=l=0;l<=5;r=++l){for(e=[],t=i=0;i<=5;t=++i)if(t!==r&&t!==r-3)for(w=t===0||t===3?[0,1,2]:[1],c=0,u=w.length;c<u;c++)v=w[c],e.push(t*3+v);b.push(e)}return b})(),le=function(t,r,u){var l,e,i;return l=r%8,i=r>>3,e=l<<2,u!=null?(t[i]&=~(15<<e),t[i]|=u<<e,u):(t[i]&15<<e)>>>e},R=function(t,r,u,l){var e,i,c,v,w,b,N,m,s,p,a,y,C;for(y=(function(){var P,E,_;for(_=[],C=P=0,E=Math.ceil(r/8)-1;0<=E?P<=E:P>=E;C=0<=E?++P:--P)_.push(4294967295);return _})(),t===1?m=h:m=n,i=0,le(y,0,i),c=1;c!==r;){for(v=b=0,a=r-1;0<=a?b<=a:b>=a;v=0<=a?++b:--b)if(le(y,v)===i)for(e=u(v),p=0,w=m.length;p<w;p++)N=m[p],s=l(e,N),le(y,s)===15&&(le(y,s,i+1),c++);i++}return y},L.pruningTables={sliceTwist:null,sliceFlip:null,sliceURFtoDLFParity:null,sliceURtoDFParity:null},Le={sliceTwist:[1,x*Y,function(t){return[t%x,t/x|0]},function(t,r){var u,l,e,i;return[e,i]=t,u=L.moveTables.FRtoBR[e*24][r]/24|0,l=L.moveTables.twist[i][r],l*x+u}],sliceFlip:[1,x*W,function(t){return[t%x,t/x|0]},function(t,r){var u,l,e,i;return[i,u]=t,e=L.moveTables.FRtoBR[i*24][r]/24|0,l=L.moveTables.flip[u][r],l*x+e}],sliceURFtoDLFParity:[2,T*G*j,function(t){return[t%2,(t/2|0)%T,(t/2|0)/T|0]},function(t,r){var u,l,e,i,c,v;return[c,v,u]=t,l=L.moveTables.parity[c][r],e=L.moveTables.FRtoBR[v][r],i=L.moveTables.URFtoDLF[u][r],(i*T+e)*2+l}],sliceURtoDFParity:[2,T*De*j,function(t){return[t%2,(t/2|0)%T,(t/2|0)/T|0]},function(t,r){var u,l,e,i,c,v;return[c,v,u]=t,l=L.moveTables.parity[c][r],e=L.moveTables.FRtoBR[v][r],i=L.moveTables.URtoDF[u][r],(i*T+e)*2+l}]},L.computePruningTables=function(...t){var r,u,l,e,i;for(t.length===0&&(t=(function(){var c;c=[];for(l in Le)c.push(l);return c})()),u=0,r=t.length;u<r;u++)i=t[u],this.pruningTables[i]===null&&(e=Le[i],this.pruningTables[i]=R(...e));return this},L.initSolver=function(){return L.computeMoveTables(),L.computePruningTables()},L.prototype.solveUpright=function(t=22){var r,u,l,e,i,c,v,w,b,N;return l=(function(){var m,s,p,a,y,C,P;for(s=["U","R","F","D","L","B"],C=["","2","'"],P=[],m=p=0;p<=5;m=++p)for(y=a=0;a<=2;y=++a)P.push(s[m]+C[y]);return P})(),r=class{constructor(s){this.parent=null,this.lastMove=null,this.depth=0,s&&this.init(s)}init(s){return this.flip=s.flip(),this.twist=s.twist(),this.slice=s.FRtoBR()/T|0,this.parity=s.cornerParity(),this.URFtoDLF=s.URFtoDLF(),this.FRtoBR=s.FRtoBR(),this.URtoUL=s.URtoUL(),this.UBtoDF=s.UBtoDF(),this}solution(){return this.parent?this.parent.solution()+l[this.lastMove]+" ":""}move(s,p,a){return L.moveTables[s][p][a]}pruning(s,p){return le(L.pruningTables[s],p)}moves1(){return this.lastMove!==null?V[this.lastMove/3|0]:h}minDist1(){var s,p;return s=this.pruning("sliceFlip",x*this.flip+this.slice),p=this.pruning("sliceTwist",x*this.twist+this.slice),D(s,p)}next1(s){var p;return p=u.pop(),p.parent=this,p.lastMove=s,p.depth=this.depth+1,p.flip=this.move("flip",this.flip,s),p.twist=this.move("twist",this.twist,s),p.slice=this.move("FRtoBR",this.slice*24,s)/24|0,p}moves2(){return this.lastMove!==null?z[this.lastMove/3|0]:n}minDist2(){var s,p,a,y;return a=(T*this.URtoDF+this.FRtoBR)*j+this.parity,s=this.pruning("sliceURtoDFParity",a),y=(T*this.URFtoDLF+this.FRtoBR)*j+this.parity,p=this.pruning("sliceURFtoDLFParity",y),D(s,p)}init2(s=!0){if(this.parent!==null&&(this.parent.init2(!1),this.URFtoDLF=this.move("URFtoDLF",this.parent.URFtoDLF,this.lastMove),this.FRtoBR=this.move("FRtoBR",this.parent.FRtoBR,this.lastMove),this.parity=this.move("parity",this.parent.parity,this.lastMove),this.URtoUL=this.move("URtoUL",this.parent.URtoUL,this.lastMove),this.UBtoDF=this.move("UBtoDF",this.parent.UBtoDF,this.lastMove),s))return this.URtoDF=this.move("mergeURtoDF",this.URtoUL,this.UBtoDF)}next2(s){var p;return p=u.pop(),p.parent=this,p.lastMove=s,p.depth=this.depth+1,p.URFtoDLF=this.move("URFtoDLF",this.URFtoDLF,s),p.FRtoBR=this.move("FRtoBR",this.FRtoBR,s),p.parity=this.move("parity",this.parity,s),p.URtoDF=this.move("URtoDF",this.URtoDF,s),p}},w=null,i=function(m){var s,p,a,y;for(s=0,y=[],s=p=1,a=t;(1<=a?p<=a:p>=a)&&(e(m,s),w===null);s=1<=a?++p:--p)y.push(s++);return y},e=function(m,s){var p,a,y,C,P,E,_;if(s===0){if(m.minDist1()===0&&(m.lastMove===null||(P=m.lastMove,He.call(n,P)<0)))return v(m)}else if(s>0&&m.minDist1()<=s){for(E=m.moves1(),_=[],a=0,p=E.length;a<p&&(y=E[a],C=m.next1(y),e(C,s-1),u.push(C),w===null);a++)_.push(void 0);return _}},v=function(m){var s,p,a,y;for(m.init2(),y=[],s=p=1,a=t-m.depth;(1<=a?p<=a:p>=a)&&(c(m,s),w===null);s=1<=a?++p:--p)y.push(s++);return y},c=function(m,s){var p,a,y,C,P,E;if(s===0){if(m.minDist2()===0)return w=m.solution()}else if(s>0&&m.minDist2()<=s){for(P=m.moves2(),E=[],a=0,p=P.length;a<p&&(y=P[a],C=m.next2(y),c(C,s-1),u.push(C),w===null);a++)E.push(void 0);return E}},u=(function(){var m,s,p;for(p=[],N=m=0,s=t+1;0<=s?m<=s:m>=s;N=0<=s?++m:--m)p.push(new r);return p})(),b=u.pop().init(this),i(b),u.push(b),w.length>0&&(w=w.substring(0,w.length-1)),w},B={U:0,R:1,F:2,D:3,L:4,B:5},F={0:"U",1:"R",2:"F",3:"D",4:"L",5:"B"},L.prototype.solve=function(t=22){var r,u,l,e,i,c,v,w,b;for(r=this.clone(),w=r.upright(),r.move(w),c=new L().move(w).center,b=r.solveUpright(t),v=[],i=b.split(" "),l=0,u=i.length;l<u;l++)e=i[l],v.push(F[c[B[e[0]]]]),e.length>1&&(v[v.length-1]+=e[1]);return v.join(" ")},L.scramble=function(){return L.inverse(L.random().solve())}}).call(We)});var Ke=ze((et,Ge)=>{Ge.exports=qe();Ye()});return Ke();})();
+</script>
+<script>/* vision.js — อ่านสีสติกเกอร์จากภาพ จัดกลุ่มสี และตรวจความถูกต้องของลูกบาศก์
+ * ไม่มีไลบรารีภายนอก ทำงานในเบราว์เซอร์ (และใน Node สำหรับทดสอบ)
+ */
+(function (root) {
+  'use strict';
+
+  // ลำดับหน้าตามมาตรฐาน Kociemba / cubejs
+  var FACES = ['U', 'R', 'F', 'D', 'L', 'B'];
+
+  /* ---------- สี ---------- */
+  function lin(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function rgb2lab(rgb) {
+    var R = lin(rgb[0]), G = lin(rgb[1]), B = lin(rgb[2]);
+    var X = (R * 0.4124564 + G * 0.3575761 + B * 0.1804375) / 0.95047;
+    var Y = R * 0.2126729 + G * 0.7151522 + B * 0.0721750;
+    var Z = (R * 0.0193339 + G * 0.1191920 + B * 0.9503041) / 1.08883;
+    function f(t) { return t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116; }
+    var fx = f(X), fy = f(Y), fz = f(Z);
+    return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+  }
+  // ให้น้ำหนักความสว่างน้อยลง เพราะแสงในห้องเปลี่ยนความสว่างได้มากกว่าเฉดสี
+  function dE(a, b) {
+    var dl = (a[0] - b[0]) * 0.55, da = a[1] - b[1], db = a[2] - b[2];
+    return Math.sqrt(dl * dl + da * da + db * db);
+  }
+
+  // สีต้นแบบสำหรับ "ตั้งชื่อ" สีของจุดศูนย์กลาง (รวมสีสติกเกอร์แบบ stickerless ของ QiYi)
+  var PROTOS = {
+    W: [[240, 240, 235], [255, 255, 255], [205, 210, 208]],
+    Y: [[255, 213, 0], [222, 228, 24], [250, 235, 70]],
+    R: [[194, 29, 44], [200, 16, 46], [170, 25, 40]],
+    O: [[232, 87, 12], [255, 88, 0], [240, 120, 20]],
+    G: [[70, 212, 30], [0, 155, 72], [40, 170, 60]],
+    B: [[10, 160, 185], [0, 70, 173], [0, 100, 200], [30, 120, 190]]
+  };
+  var NAMES = ['W', 'Y', 'R', 'O', 'G', 'B'];
+  var PROTO_LAB = {};
+  NAMES.forEach(function (n) { PROTO_LAB[n] = PROTOS[n].map(rgb2lab); });
+
+  /* ---------- Hungarian (จับคู่ต้นทุนต่ำสุด) ---------- */
+  function hungarian(a) {
+    var n = a.length, m = a[0].length, INF = 1e18;
+    var u = new Array(n + 1).fill(0), v = new Array(m + 1).fill(0);
+    var p = new Array(m + 1).fill(0), way = new Array(m + 1).fill(0);
+    for (var i = 1; i <= n; i++) {
+      p[0] = i;
+      var j0 = 0;
+      var minv = new Array(m + 1).fill(INF);
+      var used = new Array(m + 1).fill(false);
+      do {
+        used[j0] = true;
+        var i0 = p[j0], delta = INF, j1 = 0;
+        for (var j = 1; j <= m; j++) {
+          if (!used[j]) {
+            var cur = a[i0 - 1][j - 1] - u[i0] - v[j];
+            if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+            if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+          }
+        }
+        for (var k = 0; k <= m; k++) {
+          if (used[k]) { u[p[k]] += delta; v[k] -= delta; } else { minv[k] -= delta; }
+        }
+        j0 = j1;
+      } while (p[j0] !== 0);
+      do { var jj = way[j0]; p[j0] = p[jj]; j0 = jj; } while (j0);
+    }
+    var ans = new Array(n).fill(-1);
+    for (var c = 1; c <= m; c++) if (p[c]) ans[p[c] - 1] = c - 1;
+    return ans;
+  }
+
+  /* ---------- อ่านสีจากภาพ ---------- */
+  function median(arr) {
+    arr.sort(function (x, y) { return x - y; });
+    return arr[arr.length >> 1];
+  }
+  // imgData: {width,height,data} (RGBA) ; grid: {x,y,s} เป็นสัดส่วน 0..1 ของด้านภาพ (ภาพจัตุรัส)
+  function sampleGrid(imgData, grid) {
+    var W = imgData.width, H = imgData.height, d = imgData.data;
+    var cell = grid.s * W / 3;
+    var half = Math.max(2, Math.round(cell * 0.17));
+    var out = [];
+    for (var r = 0; r < 3; r++) {
+      for (var c = 0; c < 3; c++) {
+        var cx = Math.round(grid.x * W + (c + 0.5) * cell);
+        var cy = Math.round(grid.y * H + (r + 0.5) * cell);
+        var R = [], G = [], B = [];
+        for (var yy = cy - half; yy <= cy + half; yy++) {
+          for (var xx = cx - half; xx <= cx + half; xx++) {
+            if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+            var o = (yy * W + xx) * 4;
+            R.push(d[o]); G.push(d[o + 1]); B.push(d[o + 2]);
+          }
+        }
+        out.push(R.length ? [median(R), median(G), median(B)] : [128, 128, 128]);
+      }
+    }
+    return out;
+  }
+
+  /* ---------- ตั้งชื่อสีของศูนย์กลาง 6 หน้า ---------- */
+  // centers: {U:[r,g,b],...} -> {U:'Y', ...} ชื่อสีไม่ซ้ำกัน
+  function nameCenters(centers) {
+    var cost = FACES.map(function (f) {
+      var lab = rgb2lab(centers[f]);
+      return NAMES.map(function (n) {
+        var best = 1e9;
+        PROTO_LAB[n].forEach(function (p) { best = Math.min(best, dE(lab, p)); });
+        return best * best;
+      });
+    });
+    var asg = hungarian(cost), res = {};
+    FACES.forEach(function (f, i) { res[f] = NAMES[asg[i]]; });
+    return res;
+  }
+
+  /* ---------- จัดกลุ่มสีสติกเกอร์ทั้ง 54 ช่อง ---------- */
+  // samples: {U:[9 rgb], R:..., ...} -> array 54 ตัวอักษรหน้า (U,R,F,D,L,B) ลำดับ URFDLB
+  // วิธี: เทียบกับสีศูนย์กลางจริงของภาพ และบังคับให้แต่ละสีมี 9 ช่องพอดี (Hungarian)
+  function classify(samples) {
+    var centerLab = FACES.map(function (f) { return rgb2lab(samples[f][4]); });
+    var items = [];
+    FACES.forEach(function (f, fi) {
+      for (var i = 0; i < 9; i++) if (i !== 4) items.push({ fi: fi, i: i, lab: rgb2lab(samples[f][i]) });
+    });
+    var cost = items.map(function (it) {
+      var row = [];
+      for (var c = 0; c < 6; c++) {
+        var d = dE(it.lab, centerLab[c]);
+        for (var k = 0; k < 8; k++) row.push(d * d);
+      }
+      return row;
+    });
+    var asg = hungarian(cost);
+    var out = new Array(54);
+    FACES.forEach(function (f, fi) { out[fi * 9 + 4] = fi; });
+    items.forEach(function (it, idx) { out[it.fi * 9 + it.i] = Math.floor(asg[idx] / 8); });
+    return out; // ค่า 0..5 = ดัชนีหน้าใน FACES (สีเดียวกับศูนย์กลางหน้านั้น)
+  }
+
+  /* ---------- ตรวจความถูกต้องของลูกบาศก์ ---------- */
+  function inversionsParity(arr) {
+    var inv = 0;
+    for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++) if (arr[i] > arr[j]) inv++;
+    return inv & 1;
+  }
+  // facelets: สตริง 54 ตัวอักษร ลำดับ URFDLB ; Cube = คลาส cubejs
+  // คืน null ถ้าถูกต้อง หรือข้อความภาษาไทยบอกปัญหา
+  function validate(facelets, Cube) {
+    if (typeof facelets !== 'string' || facelets.length !== 54 || /[^URFDLB]/.test(facelets)) {
+      return 'ยังกรอกสีไม่ครบทุกช่อง';
+    }
+    var cnt = {};
+    for (var i = 0; i < 54; i++) cnt[facelets[i]] = (cnt[facelets[i]] || 0) + 1;
+    for (var k = 0; k < FACES.length; k++) {
+      if (cnt[FACES[k]] !== 9) return 'แต่ละสีต้องมี 9 ช่องพอดี (ตอนนี้บางสีมากหรือน้อยเกินไป)';
+    }
+    var cube;
+    try { cube = Cube.fromString(facelets); } catch (e) { return 'อ่านสถานะลูกบาศก์ไม่ได้'; }
+    if (cube.asString() !== facelets) {
+      return 'มีชิ้นส่วนที่ไม่มีอยู่จริงบนรูบิค (สีของมุมหรือขอบซ้ำหรือผิดคู่) ลองตรวจสีที่อ่านผิด';
+    }
+    var j = cube.toJSON();
+    var sum = function (a) { return a.reduce(function (x, y) { return x + y; }, 0); };
+    if (sum(j.co) % 3 !== 0) return 'มีมุมบิดอยู่ 1 มุม ตรวจสีของมุมอีกครั้ง';
+    if (sum(j.eo) % 2 !== 0) return 'มีขอบกลับด้านอยู่ 1 ชิ้น ตรวจสีของขอบอีกครั้ง';
+    if (inversionsParity(j.cp) !== inversionsParity(j.ep)) return 'มีชิ้นสลับตำแหน่งแบบที่เป็นไปไม่ได้ ตรวจสีที่อ่านผิด';
+    return null;
+  }
+
+  var api = {
+    FACES: FACES, NAMES: NAMES, rgb2lab: rgb2lab, dE: dE, hungarian: hungarian,
+    sampleGrid: sampleGrid, nameCenters: nameCenters, classify: classify, validate: validate
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.RCSVision = api;
+})(typeof self !== 'undefined' ? self : this);
+</script>
+<script>/* app.js — แก้รูบิคด้วยกล้อง: สแกน 6 ด้าน / ตั้งสีเองบนโมเดล 3 มิติ / บอกวิธีแก้ทีละตา */
+(function () {
+  'use strict';
+  var V = window.RCSVision, Cube = window.CubeLib;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var FACES = V.FACES; // U R F D L B
+
+  var COLORS = {
+    W: { th: 'ขาว', hex: '#f2f5f3' }, Y: { th: 'เหลือง', hex: '#dfe51a' }, R: { th: 'แดง', hex: '#c21d2c' },
+    O: { th: 'ส้ม', hex: '#e8570c' }, G: { th: 'เขียว', hex: '#46d41e' }, B: { th: 'ฟ้า', hex: '#0aa2bb' }
+  };
+  var FACE_TH = { U: 'บน', R: 'ขวา', F: 'หน้า', D: 'ล่าง', L: 'ซ้าย', B: 'หลัง' };
+  // ศูนย์กลางตามรูบิคของแบมแบม: เหลืองบน ฟ้าหน้า แดงขวา ส้มซ้าย เขียวหลัง ขาวล่าง
+  var DEFAULT_SCHEME = { U: 'Y', F: 'B', R: 'R', D: 'W', L: 'O', B: 'G' };
+  var NETPOS = { U: [3, 0], L: [0, 3], F: [3, 3], R: [6, 3], B: [9, 3], D: [3, 6] };
+  var DEMO_SCRAMBLE = "R U R' U' F2 D L' B2 U' R2 F D2 L U2 B'";
+
+  var SCAN = [
+    { f: 'F', t: 'ด้านที่ 1 · ด้านหน้า (F)', d: 'ถือรูบิคเป็นท่าเริ่มต้น แนะนำให้ศูนย์กลางเหลืองอยู่ข้างบน ฟ้าหันหาตัว แล้วถ่ายด้านที่หันหาตัว' },
+    { f: 'R', t: 'ด้านที่ 2 · ด้านขวา (R)', d: 'หมุนทั้งลูกไปทางซ้าย 90° ให้ด้านขวาเข้ามาอยู่ข้างหน้า ขอบบนยังอยู่ข้างบน' },
+    { f: 'B', t: 'ด้านที่ 3 · ด้านหลัง (B)', d: 'หมุนทั้งลูกไปทางซ้ายอีก 90° ขอบบนยังอยู่ข้างบน' },
+    { f: 'L', t: 'ด้านที่ 4 · ด้านซ้าย (L)', d: 'หมุนทั้งลูกไปทางซ้ายอีก 90° ขอบบนยังอยู่ข้างบน' },
+    { f: 'U', t: 'ด้านที่ 5 · ด้านบน (U)', d: 'หมุนไปทางซ้ายอีก 90° ให้กลับท่าเริ่มต้น แล้วเงยด้านบนเข้าหากล้อง ด้านหน้าเดิมจะอยู่ล่างภาพ' },
+    { f: 'D', t: 'ด้านที่ 6 · ด้านล่าง (D)', d: 'กลับท่าเริ่มต้น แล้วคว่ำด้านล่างเข้าหากล้อง ด้านหน้าเดิมจะอยู่บนภาพ' }
+  ];
+
+  var S = {
+    scheme: Object.assign({}, DEFAULT_SCHEME),
+    cells: new Array(54).fill(null),   // ดัชนีหน้า 0..5 หรือ null
+    samples: {}, step: 0, cur: null, grid: { x: 0.19, y: 0.19, s: 0.62 },
+    brush: 0, from: 'manual', moves: [], idx: 0, facelets: '', timer: null, stream: null, mode: 'idle'
+  };
+
+  /* ---------- ตัวช่วย ---------- */
+  function hexOf(fi) { return COLORS[S.scheme[FACES[fi]]].hex; }
+  function nameOf(fi) { return COLORS[S.scheme[FACES[fi]]].th; }
+  function rgbCss(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
+  function textOn(hex) {
+    var n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    var L = 0.2126 * Math.pow(r / 255, 2.2) + 0.7152 * Math.pow(g / 255, 2.2) + 0.0722 * Math.pow(b / 255, 2.2);
+    return L < 0.22 ? '#ffffff' : '#1c2230';
+  }
+  function show(id) {
+    ['home', 'scan', 'edit', 'solve'].forEach(function (n) { $('#screen-' + n).hidden = (n !== id); });
+    if (id !== 'scan') stopCamera();
+    if (id !== 'solve') stopPlay();
+    window.scrollTo(0, 0);
+  }
+  function faceletString() { return S.cells.map(function (c) { return c === null ? '?' : FACES[c]; }).join(''); }
+  function resetCenters() { for (var fi = 0; fi < 6; fi++) S.cells[fi * 9 + 4] = fi; }
+
+  /* ---------- ตัวแก้ (Web Worker) ---------- */
+  var solver = (function () {
+    var worker = null, seq = 0, pend = {}, ready = false, mainInit = false;
+    function setState(ok) {
+      var el = $('#solverState'); ready = ok;
+      el.textContent = ok ? 'ตัวแก้พร้อมแล้ว' : 'กำลังเตรียมตัวแก้…';
+      el.classList.toggle('ok', ok);
+    }
+    function call(msg) {
+      return new Promise(function (resolve, reject) {
+        var id = ++seq; msg.id = id;
+        var t = setTimeout(function () { delete pend[id]; reject(new Error('หมดเวลาคำนวณ')); }, 30000);
+        pend[id] = { resolve: resolve, reject: reject, t: t };
+        worker.postMessage(msg);
+      });
+    }
+    function source() {
+      var el = $('#cubejs-src');
+      if (el.getAttribute('src')) return fetch(el.getAttribute('src')).then(function (r) { return r.text(); });
+      return Promise.resolve(el.textContent);
+    }
+    function start() {
+      return source().then(function (text) {
+        var code = text + ';self.Cube=self.CubeLib;self.onmessage=function(e){var d=e.data;try{' +
+          'if(d.cmd==="init"){Cube.initSolver();postMessage({id:d.id,ok:true});}' +
+          'else{var c=Cube.fromString(d.facelets);postMessage({id:d.id,ok:true,solution:c.solve()});}' +
+          '}catch(err){postMessage({id:d.id,ok:false,error:String(err)});}};';
+        worker = new Worker(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
+        worker.onmessage = function (e) {
+          var p = pend[e.data.id]; if (!p) return;
+          clearTimeout(p.t); delete pend[e.data.id];
+          if (e.data.ok) p.resolve(e.data); else p.reject(new Error(e.data.error));
+        };
+        worker.onerror = function () { worker = null; };
+        return call({ cmd: 'init' });
+      }).then(function () { setState(true); }).catch(function () { worker = null; });
+    }
+    function initMain() {
+      return new Promise(function (res) {
+        setTimeout(function () { if (!mainInit) { Cube.initSolver(); mainInit = true; } setState(true); res(); }, 30);
+      });
+    }
+    return {
+      init: function () { setState(false); return start().then(function () { if (!worker) return initMain(); }); },
+      solve: function (facelets) {
+        if (worker) return call({ cmd: 'solve', facelets: facelets }).then(function (r) { return r.solution; });
+        return initMain().then(function () { return Cube.fromString(facelets).solve(); });
+      }
+    };
+  })();
+
+  /* ---------- แผ่นคลี่ ---------- */
+  function createNet(el, onTap) {
+    var cells = [];
+    el.classList.toggle('tap', !!onTap);
+    FACES.forEach(function (f, fi) {
+      var p = NETPOS[f];
+      for (var j = 0; j < 9; j++) {
+        var c = document.createElement('i');
+        c.style.gridColumn = String(p[0] + (j % 3) + 1);
+        c.style.gridRow = String(p[1] + Math.floor(j / 3) + 1);
+        c.dataset.i = String(fi * 9 + j);
+        if (j === 4) c.classList.add('ctr');
+        el.appendChild(c); cells[fi * 9 + j] = c;
+      }
+    });
+    if (onTap) el.addEventListener('click', function (e) {
+      var c = e.target.closest('i'); if (c) onTap(+c.dataset.i);
+    });
+    return {
+      set: function (colors, opt) {
+        opt = opt || {};
+        var hi = opt.hl ? FACES.indexOf(opt.hl) : -1;
+        for (var i = 0; i < 54; i++) {
+          var c = cells[i], col = colors[i];
+          c.style.background = col || '#cfd5db';
+          var on = hi >= 0 && Math.floor(i / 9) === hi;
+          c.classList.toggle('hl', on);
+          c.classList.toggle('fade', hi >= 0 && !on);
+          c.textContent = (on && i % 9 === 4) ? (opt.ctrText || '') : '';
+        }
+      }
+    };
+  }
+
+  /* ---------- โมเดล 3 มิติ ---------- */
+  var cube3 = { rx: -28, ry: -35, els: [] };
+  var VIEWS = { F: [0, 0], R: [0, -90], B: [0, -180], L: [0, 90], U: [-90, 0], D: [90, 0] };
+  function build3d() {
+    var root = $('#cube3d'); root.innerHTML = '';
+    FACES.forEach(function (f, fi) {
+      var face = document.createElement('div'); face.className = 'cf ' + f;
+      for (var j = 0; j < 9; j++) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'st' + (j === 4 ? ' ctr' : '');
+        b.dataset.i = String(fi * 9 + j);
+        b.setAttribute('aria-label', 'ด้าน' + FACE_TH[f] + ' แถว ' + (Math.floor(j / 3) + 1) + ' ช่อง ' + (j % 3 + 1));
+        face.appendChild(b); cube3.els[fi * 9 + j] = b;
+      }
+      root.appendChild(face);
+    });
+    var vb = $('#views'); vb.innerHTML = '';
+    ['F', 'R', 'B', 'L', 'U', 'D'].forEach(function (f) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'view'; b.dataset.f = f;
+      b.textContent = FACE_TH[f]; b.setAttribute('aria-label', 'ดูด้าน' + FACE_TH[f]);
+      b.addEventListener('click', function () { snapView(f); });
+      vb.appendChild(b);
+    });
+    applyRot();
+    var sc = $('#scene'), st = null;
+    sc.addEventListener('pointerdown', function (e) {
+      st = { x: e.clientX, y: e.clientY, rx: cube3.rx, ry: cube3.ry, moved: false, id: e.pointerId, tgt: e.target.closest('.st') };
+    });
+    sc.addEventListener('pointermove', function (e) {
+      if (!st) return;
+      var dx = e.clientX - st.x, dy = e.clientY - st.y;
+      if (!st.moved && Math.hypot(dx, dy) > 7) {
+        st.moved = true; $('#cube3d').classList.add('drag');
+        try { sc.setPointerCapture(st.id); } catch (_) { /* ignore */ }
+        document.querySelectorAll('.view.on').forEach(function (v) { v.classList.remove('on'); });
+      }
+      if (st.moved) {
+        cube3.ry = st.ry + dx * 0.6;
+        cube3.rx = Math.max(-90, Math.min(90, st.rx - dy * 0.6));
+        applyRot();
+      }
+    });
+    function end() {
+      if (!st) return;
+      $('#cube3d').classList.remove('drag');
+      if (!st.moved && st.tgt) paint(+st.tgt.dataset.i);
+      st = null;
+    }
+    sc.addEventListener('pointerup', end);
+    sc.addEventListener('pointercancel', function () { $('#cube3d').classList.remove('drag'); st = null; });
+  }
+  function applyRot() { $('#cube3d').style.transform = 'rotateX(' + cube3.rx + 'deg) rotateY(' + cube3.ry + 'deg)'; }
+  function snapView(f) {
+    var t = VIEWS[f];
+    cube3.rx = t[0];
+    cube3.ry = t[1] + 360 * Math.round((cube3.ry - t[1]) / 360);
+    applyRot();
+    document.querySelectorAll('.view').forEach(function (v) { v.classList.toggle('on', v.dataset.f === f); });
+  }
+
+  /* ---------- หน้าตั้งค่า/ตรวจสี ---------- */
+  var editNet, scanNet, solveNet;
+  function buildPalette() {
+    var p = $('#palette'); p.innerHTML = '';
+    for (var fi = 0; fi < 6; fi++) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.dataset.b = String(fi);
+      b.setAttribute('role', 'radio'); b.setAttribute('aria-label', 'สี' + nameOf(fi));
+      b.style.background = hexOf(fi); b.style.color = textOn(hexOf(fi)); b.textContent = nameOf(fi);
+      p.appendChild(b);
+    }
+    var e = document.createElement('button'); e.type = 'button'; e.className = 'sw erase'; e.dataset.b = 'x';
+    e.setAttribute('role', 'radio'); e.setAttribute('aria-label', 'ลบสี'); e.textContent = 'ลบ';
+    p.appendChild(e);
+    p.onclick = function (ev) {
+      var b = ev.target.closest('.sw'); if (!b) return;
+      S.brush = b.dataset.b === 'x' ? null : +b.dataset.b; markBrush();
+    };
+    markBrush();
+  }
+  function markBrush() {
+    document.querySelectorAll('#palette .sw').forEach(function (b) {
+      var on = (b.dataset.b === 'x') ? S.brush === null : (+b.dataset.b === S.brush);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  function paint(i) {
+    if (i % 9 === 4) return;
+    S.cells[i] = S.brush;
+    refreshEdit();
+  }
+  function refreshEdit() {
+    var colors = S.cells.map(function (c) { return c === null ? null : hexOf(c); });
+    editNet.set(colors);
+    for (var i = 0; i < 54; i++) {
+      var el = cube3.els[i]; if (!el) continue;
+      el.style.background = colors[i] || '#cfd5db';
+      el.style.color = colors[i] ? textOn(colors[i]) : '#1c2230';
+    }
+    var cnt = $('#counts'); cnt.innerHTML = '';
+    var total = 0;
+    for (var fi = 0; fi < 6; fi++) {
+      var n = S.cells.filter(function (c) { return c === fi; }).length; total += n;
+      var d = document.createElement('span'); d.className = 'cnt ' + (n === 9 ? 'ok' : (n > 9 ? 'bad' : ''));
+      d.innerHTML = '<i style="background:' + hexOf(fi) + '"></i>' + nameOf(fi) + ' ' + n + '/9';
+      cnt.appendChild(d);
+    }
+    $('#editErr').textContent = '';
+  }
+  function openEdit(kind) {
+    S.from = kind;
+    var t = $('#editTitle'), l = $('#editLead');
+    if (kind === 'scan') {
+      t.textContent = 'ตรวจสีที่อ่านได้';
+      l.textContent = 'ถ้ามีช่องที่สีผิด ให้เลือกสีที่ถูกจากแถบสี แล้วแตะช่องนั้น ลากโมเดลเพื่อหมุนดูทุกด้าน';
+    } else {
+      t.textContent = 'ตั้งสีของรูบิค';
+      l.textContent = 'เลือกสีจากแถบสี แล้วแตะช่องบนโมเดลเพื่อใส่สี ลากเพื่อหมุนโมเดล หรือกดปุ่มด้านเพื่อดูทีละด้าน ช่องตรงกลางของแต่ละด้านคงที่';
+    }
+    $('#btnRescan').textContent = kind === 'scan' ? 'สแกนใหม่ทั้งหมด' : 'กลับไปสแกนด้วยกล้อง';
+    buildPalette(); refreshEdit(); show('edit');
+    if (kind !== 'scan') snapView('F');
+  }
+
+  /* ---------- กล้องและการสแกน ---------- */
+  var video, still, sctx, stage, gridbox;
+  function setMode(m) {
+    S.mode = m;
+    stage.className = 'stage ' + m;
+    $('#ctlIdle').hidden = m !== 'idle';
+    $('#ctlLive').hidden = m !== 'live';
+    $('#ctlShot').hidden = m !== 'shot';
+  }
+  function renderChips() {
+    var c = $('#chips'); c.innerHTML = '';
+    SCAN.forEach(function (s, i) {
+      var b = document.createElement('button'); b.type = 'button';
+      b.className = 'chip' + (i === S.step ? ' on' : '') + (S.samples[s.f] ? ' done' : '');
+      b.innerHTML = '<b>' + s.f + '</b>' + FACE_TH[s.f];
+      b.setAttribute('aria-label', 'ด้าน' + FACE_TH[s.f]);
+      b.onclick = function () { gotoStep(i); };
+      c.appendChild(b);
+    });
+  }
+  function renderScanNet() {
+    var colors = new Array(54).fill(null);
+    FACES.forEach(function (f, fi) {
+      var sm = S.samples[f]; if (!sm) return;
+      for (var j = 0; j < 9; j++) colors[fi * 9 + j] = rgbCss(sm[j]);
+    });
+    scanNet.set(colors, { hl: SCAN[S.step].f });
+  }
+  function gotoStep(i) {
+    S.step = i;
+    $('#instrTitle').textContent = SCAN[i].t; $('#instrText').textContent = SCAN[i].d;
+    renderChips(); renderScanNet();
+    setMode(S.stream ? 'live' : 'idle');
+  }
+  function placeGrid() {
+    var g = S.grid;
+    gridbox.style.left = (g.x * 100) + '%'; gridbox.style.top = (g.y * 100) + '%';
+    gridbox.style.width = (g.s * 100) + '%'; gridbox.style.height = (g.s * 100) + '%';
+  }
+  function updateSwatches() {
+    var img = sctx.getImageData(0, 0, still.width, still.height);
+    S.cur = V.sampleGrid(img, S.grid);
+    var sw = $('#swatches'); sw.innerHTML = '';
+    S.cur.forEach(function (c) { var i = document.createElement('i'); i.style.background = rgbCss(c); sw.appendChild(i); });
+  }
+  function startCamera() {
+    $('#camMsg').textContent = '';
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      $('#camMsg').textContent = 'หน้านี้เปิดกล้องตรง ๆ ไม่ได้ ใช้ปุ่ม “ถ่ายด้วยกล้องมือถือ” หรือ “เลือกรูป” แทนได้';
+      return;
+    }
+    var tries = [
+      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 1280 } }, audio: false },
+      { video: true, audio: false }
+    ];
+    var chain = Promise.reject();
+    tries.forEach(function (c) { chain = chain.catch(function () { return navigator.mediaDevices.getUserMedia(c); }); });
+    chain.then(function (stream) {
+      S.stream = stream; video.srcObject = stream;
+      return video.play().catch(function () { /* autoplay อาจถูกบล็อก */ });
+    }).then(function () { S.grid = { x: 0.19, y: 0.19, s: 0.62 }; placeGrid(); setMode('live'); })
+      .catch(function () {
+        S.stream = null;
+        $('#camMsg').textContent = 'เปิดกล้องไม่สำเร็จ (อาจยังไม่ได้อนุญาตกล้อง) ใช้ปุ่ม “ถ่ายด้วยกล้องมือถือ” หรือ “เลือกรูป” แทนได้';
+        setMode('idle');
+      });
+  }
+  function stopCamera() {
+    if (S.stream) { S.stream.getTracks().forEach(function (t) { t.stop(); }); S.stream = null; }
+    if (video) video.srcObject = null;
+    if (stage && S.mode === 'live') setMode('idle');
+  }
+  function drawSquare(src, w, h) {
+    var s = Math.min(w, h), sx = (w - s) / 2, sy = (h - s) / 2;
+    sctx.drawImage(src, sx, sy, s, s, 0, 0, still.width, still.height);
+  }
+  function shoot() {
+    if (!video.videoWidth) return;
+    drawSquare(video, video.videoWidth, video.videoHeight);
+    afterCapture();
+  }
+  function afterCapture() {
+    S.grid = { x: 0.19, y: 0.19, s: 0.62 }; $('#sizeRange').value = '62';
+    placeGrid(); setMode('shot'); updateSwatches();
+  }
+  function loadFile(file) {
+    if (!file) return;
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      drawSquare(img, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(url); afterCapture();
+    };
+    img.onerror = function () { $('#camMsg').textContent = 'เปิดรูปนี้ไม่ได้ ลองรูปอื่น'; };
+    img.src = url;
+  }
+  function useShot() {
+    S.samples[SCAN[S.step].f] = S.cur;
+    var next = -1;
+    for (var k = 1; k <= 6; k++) {
+      var i = (S.step + k) % 6;
+      if (!S.samples[SCAN[i].f]) { next = i; break; }
+    }
+    if (next < 0) { finishScan(); return; }
+    gotoStep(next);
+  }
+  function finishScan() {
+    var centers = {};
+    FACES.forEach(function (f) { centers[f] = S.samples[f][4]; });
+    S.scheme = V.nameCenters(centers);
+    S.cells = V.classify(S.samples);
+    stopCamera(); openEdit('scan');
+  }
+  function enterScan() {
+    S.samples = {}; S.step = 0; show('scan'); gotoStep(0); setMode('idle');
+    $('#camMsg').textContent = '';
+  }
+  function bindScan() {
+    video = $('#video'); still = $('#still'); sctx = still.getContext('2d', { willReadFrequently: true });
+    stage = $('#stage'); gridbox = $('#gridbox');
+    $('#btnCam').onclick = startCamera;
+    $('#btnShot').onclick = shoot;
+    $('#btnStopCam').onclick = function () { stopCamera(); setMode('idle'); };
+    $('#btnRetake').onclick = function () { setMode(S.stream ? 'live' : 'idle'); };
+    $('#btnUse').onclick = useShot;
+    $('#fileCam').onchange = function (e) { loadFile(e.target.files[0]); e.target.value = ''; };
+    $('#filePick').onchange = function (e) { loadFile(e.target.files[0]); e.target.value = ''; };
+    $('#sizeRange').oninput = function (e) {
+      var ns = (+e.target.value) / 100, cx = S.grid.x + S.grid.s / 2, cy = S.grid.y + S.grid.s / 2;
+      S.grid.s = ns;
+      S.grid.x = Math.max(0, Math.min(1 - ns, cx - ns / 2));
+      S.grid.y = Math.max(0, Math.min(1 - ns, cy - ns / 2));
+      placeGrid(); updateSwatches();
+    };
+    var drag = null;
+    gridbox.addEventListener('pointerdown', function (e) {
+      if (S.mode !== 'shot') return;
+      drag = { x: e.clientX, y: e.clientY, gx: S.grid.x, gy: S.grid.y };
+      gridbox.setPointerCapture(e.pointerId);
+    });
+    gridbox.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var w = stage.getBoundingClientRect().width;
+      S.grid.x = Math.max(0, Math.min(1 - S.grid.s, drag.gx + (e.clientX - drag.x) / w));
+      S.grid.y = Math.max(0, Math.min(1 - S.grid.s, drag.gy + (e.clientY - drag.y) / w));
+      placeGrid(); updateSwatches();
+    });
+    var endDrag = function () { drag = null; };
+    gridbox.addEventListener('pointerup', endDrag); gridbox.addEventListener('pointercancel', endDrag);
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stopCamera(); });
+  }
+
+  /* ---------- หน้าวิธีแก้ ---------- */
+  function tileHtml(move, cls) {
+    var f = move[0], suf = move.slice(1), fi = FACES.indexOf(f), hex = hexOf(fi);
+    return '<span class="m ' + (cls || '') + '" style="background:' + hex + ';color:' + textOn(hex) + '">' + f +
+      (suf ? '<sup>' + suf + '</sup>' : '') + '</span>';
+  }
+  function describe(m) {
+    var f = m[0], suf = m.slice(1), fi = FACES.indexOf(f);
+    var dir = suf === "'" ? 'ทวนเข็มนาฬิกา 90°' : (suf === '2' ? 'หมุน 180° (ทิศไหนก็ได้)' : 'ตามเข็มนาฬิกา 90°');
+    return 'หมุนด้าน' + FACE_TH[f] + ' (สี' + nameOf(fi) + ') ' + dir;
+  }
+  function stateAt(i) {
+    var c = Cube.fromString(S.facelets);
+    if (i > 0) c.move(S.moves.slice(0, i).join(' '));
+    return c.asString();
+  }
+  function renderSolve() {
+    var n = S.moves.length, i = S.idx;
+    var st = stateAt(i);
+    var colors = st.split('').map(function (ch) { return hexOf(FACES.indexOf(ch)); });
+    var nxt = i < n ? S.moves[i] : null;
+    var ctr = nxt ? (nxt.slice(1) === "'" ? '↺' : (nxt.slice(1) === '2' ? '2' : '↻')) : '';
+    solveNet.set(colors, nxt ? { hl: nxt[0], ctrText: ctr } : {});
+    $('#moveStep').textContent = i < n ? 'ตาที่ ' + (i + 1) + ' จาก ' + n : (n ? 'ครบ ' + n + ' ตาแล้ว' : '');
+    if (nxt) {
+      $('#moveTile').innerHTML = tileHtml(nxt, 'big');
+      $('#moveText').textContent = describe(nxt) + ' (มองเข้าหาด้านนั้น)';
+      var nn = S.moves.slice(i + 1, i + 4);
+      $('#moveNext').innerHTML = nn.length ? 'ตาต่อไป ' + nn.map(function (m) { return tileHtml(m, 'sm'); }).join('') : 'นี่คือตาสุดท้าย';
+    } else {
+      $('#moveTile').innerHTML = '';
+      $('#moveText').textContent = n ? 'แก้เสร็จแล้ว เก่งมาก!' : 'รูบิคนี้แก้เสร็จอยู่แล้ว';
+      $('#moveNext').textContent = '';
+    }
+    $('#btnPrev').disabled = i === 0;
+    $('#btnNext').disabled = i >= n;
+    document.querySelectorAll('#movesList button').forEach(function (b, k) {
+      b.classList.toggle('cur', k === i);
+      b.firstChild.classList.toggle('past', k < i);
+    });
+  }
+  function stopPlay() { if (S.timer) { clearInterval(S.timer); S.timer = null; } var b = $('#btnPlay'); if (b) b.textContent = 'เล่นอัตโนมัติ'; }
+  function openSolve(solution) {
+    S.moves = solution.trim() ? solution.trim().split(/\s+/) : []; S.idx = 0;
+    var hold = $('#holdHint');
+    hold.innerHTML = '<span class="sq" style="background:' + hexOf(0) + '"></span><span>ถือให้ศูนย์กลางสี<span class="hi">' + nameOf(0) +
+      '</span>อยู่<b>ข้างบน</b> และสี<span class="hi">' + nameOf(2) + '</span><b>หันหาตัว</b> เหมือนท่าเริ่มต้นตอนสแกน แล้วทำทีละตา</span>';
+    var ml = $('#movesList'); ml.innerHTML = '';
+    S.moves.forEach(function (m, k) {
+      var b = document.createElement('button'); b.type = 'button'; b.innerHTML = tileHtml(m);
+      b.setAttribute('aria-label', 'ไปตาที่ ' + (k + 1) + ' คือ ' + m);
+      b.onclick = function () { stopPlay(); S.idx = k; renderSolve(); };
+      ml.appendChild(b);
+    });
+    show('solve'); renderSolve();
+  }
+  function bindSolve() {
+    $('#btnNext').onclick = function () { if (S.idx < S.moves.length) { S.idx++; renderSolve(); } };
+    $('#btnPrev').onclick = function () { stopPlay(); if (S.idx > 0) { S.idx--; renderSolve(); } };
+    $('#btnReset').onclick = function () { stopPlay(); S.idx = 0; renderSolve(); };
+    $('#btnPlay').onclick = function () {
+      if (S.timer) { stopPlay(); return; }
+      if (S.idx >= S.moves.length) S.idx = 0;
+      $('#btnPlay').textContent = 'หยุดเล่น';
+      S.timer = setInterval(function () {
+        if (S.idx >= S.moves.length) { stopPlay(); return; }
+        S.idx++; renderSolve();
+      }, 1300);
+      renderSolve();
+    };
+    $('#btnAgain').onclick = function () { show('home'); };
+  }
+
+  /* ---------- คำนวณ ---------- */
+  function doSolve() {
+    var f = faceletString(), err = V.validate(f, Cube);
+    if (err) { $('#editErr').textContent = err; return Promise.resolve(); }
+    S.facelets = f;
+    var b = $('#btnSolve'); b.disabled = true; b.textContent = 'กำลังคำนวณ…';
+    return solver.solve(f).then(function (sol) {
+      if (sol === null || sol === undefined) throw new Error('ไม่พบวิธีแก้');
+      openSolve(sol);
+    }).catch(function (e) {
+      $('#editErr').textContent = 'คำนวณไม่สำเร็จ: ' + (e && e.message ? e.message : 'ลองตรวจสีอีกครั้ง');
+    }).then(function () { b.disabled = false; b.textContent = 'คำนวณวิธีแก้'; });
+  }
+
+  /* ---------- เริ่มต้น ---------- */
+  function startManual() {
+    S.scheme = Object.assign({}, DEFAULT_SCHEME);
+    S.cells = new Array(54).fill(null); resetCenters(); S.brush = 0; openEdit('manual');
+  }
+  function startDemo() {
+    S.scheme = Object.assign({}, DEFAULT_SCHEME);
+    var c = new Cube(); c.move(DEMO_SCRAMBLE);
+    S.cells = c.asString().split('').map(function (ch) { return FACES.indexOf(ch); });
+    S.brush = 0; openEdit('manual');
+    $('#editTitle').textContent = 'ลูกตัวอย่าง';
+    $('#editLead').textContent = 'นี่คือรูบิคที่สับไว้แล้ว กด “คำนวณวิธีแก้” ได้เลย หรือแตะแก้สีเองก็ได้';
+  }
+  function init() {
+    editNet = createNet($('#editNet'), paint);
+    scanNet = createNet($('#scanNet'));
+    solveNet = createNet($('#solveNet'));
+    build3d(); bindScan(); bindSolve();
+    $('#goHome').onclick = function () { show('home'); };
+    $('#btnStart').onclick = enterScan;
+    $('#btnManual').onclick = startManual;
+    $('#btnDemo').onclick = startDemo;
+    $('#btnSolve').onclick = doSolve;
+    $('#btnClear').onclick = function () { S.cells = new Array(54).fill(null); resetCenters(); refreshEdit(); };
+    $('#btnRescan').onclick = enterScan;
+    $('#tab3d').onclick = function () { tab(true); };
+    $('#tabNet').onclick = function () { tab(false); };
+    show('home'); solver.init();
+  }
+  function tab(is3d) {
+    $('#tab3d').classList.toggle('on', is3d); $('#tabNet').classList.toggle('on', !is3d);
+    $('#tab3d').setAttribute('aria-selected', String(is3d)); $('#tabNet').setAttribute('aria-selected', String(!is3d));
+    $('#pane3d').hidden = !is3d; $('#paneNet').hidden = is3d;
+  }
+
+  // ช่องทางสำหรับทดสอบอัตโนมัติ
+  window.RCS = {
+    S: S, V: V, Cube: Cube, solver: solver, faceletString: faceletString, openEdit: openEdit, doSolve: doSolve,
+    classifyFace: function (samples) { S.samples = samples; finishScan(); return faceletString(); }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+</body>
+</html>
