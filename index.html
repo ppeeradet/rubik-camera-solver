@@ -110,6 +110,11 @@
     <div class="palette" id="palette" role="radiogroup" aria-label="เลือกสีที่จะใส่"></div>
     <div class="counts" id="counts"></div>
     <p class="err" id="editErr" role="alert"></p>
+    <div class="card" id="centerBox" hidden></div>
+    <div class="card fix" id="fixBox" hidden>
+      <p id="fixText"></p>
+      <button class="btn primary" id="btnFix" type="button">คำนวณตาหมุนต่อ (แล้วสลับฝาศูนย์กลางทีหลัง)</button>
+    </div>
     <div class="stack">
       <button class="btn primary" id="btnSolve" type="button">คำนวณวิธีแก้</button>
       <div class="row2">
@@ -122,6 +127,7 @@
   <!-- 4. วิธีแก้ -->
   <section id="screen-solve" class="screen" hidden>
     <div class="card hold" id="holdHint"></div>
+    <div class="card fix" id="centerNote" hidden></div>
     <div class="card"><div class="net" id="solveNet"></div></div>
     <div class="move" id="moveBox" aria-live="polite">
       <div class="moveStep" id="moveStep"></div>

@@ -219,10 +219,18 @@
     });
   }
   function paint(i) {
-    if (i % 9 === 4) return;
+    if (i % 9 === 4) { setCenter(Math.floor(i / 9)); return; }
     S.cells[i] = S.brush;
     refreshEdit();
   }
+  // เปลี่ยนสีศูนย์กลางของด้าน fi เป็นสีที่เลือกอยู่ (สลับกับด้านที่ถือสีนั้นอยู่ เพื่อให้ 6 ศูนย์กลางสีไม่ซ้ำ)
+  function setCenter(fi) {
+    var b = S.brush; if (b === null || b === fi) return;
+    var a = FACES[fi], c = FACES[b], t = S.scheme[a];
+    S.scheme[a] = S.scheme[c]; S.scheme[c] = t;
+    S.brush = fi; buildPalette(); refreshEdit();
+  }
+  function schemeFix() { S.fix = null; $('#fixBox').hidden = true; }
   function refreshEdit() {
     var colors = S.cells.map(function (c) { return c === null ? null : hexOf(c); });
     editNet.set(colors);
@@ -239,7 +247,13 @@
       d.innerHTML = '<i style="background:' + hexOf(fi) + '"></i>' + nameOf(fi) + ' ' + n + '/9';
       cnt.appendChild(d);
     }
-    $('#editErr').textContent = '';
+    $('#editErr').textContent = ''; schemeFix();
+    var cb = $('#centerBox'), ok = V.oppositeOk(S.scheme);
+    cb.hidden = false;
+    cb.innerHTML = '<b>1) ตรวจศูนย์กลาง</b> ' + FACES.map(function (f, fi) {
+      return '<span class="cnt"><i style="background:' + hexOf(fi) + '"></i>' + FACE_TH[f] + ' ' + nameOf(fi) + '</span>';
+    }).join(' ') + '<p class="note">' + (ok ? 'ศูนย์กลางตรงข้ามกันเป็นคู่มาตรฐาน (ขาว-เหลือง, ฟ้า-เขียว, แดง-ส้ม) ถ้าสีศูนย์กลางบนรูบิคของคุณต่างจากนี้ แตะช่องตรงกลางบนโมเดลเพื่อแก้'
+      : 'คู่ตรงข้ามของศูนย์กลางไม่ใช่ขาว-เหลือง / ฟ้า-เขียว / แดง-ส้ม ตรวจสีศูนย์กลางอีกครั้ง (แตะช่องตรงกลางเพื่อแก้)') + '</p>';
   }
   function openEdit(kind) {
     S.from = kind;
@@ -425,7 +439,10 @@
   function renderSolve() {
     var n = S.moves.length, i = S.idx;
     var st = stateAt(i);
-    var colors = st.split('').map(function (ch) { return hexOf(FACES.indexOf(ch)); });
+    var colors = st.split('').map(function (ch, k) {
+      if (S.relabel && k % 9 !== 4) ch = S.relabel[ch];
+      return hexOf(FACES.indexOf(ch));
+    });
     var nxt = i < n ? S.moves[i] : null;
     var ctr = nxt ? (nxt.slice(1) === "'" ? '↺' : (nxt.slice(1) === '2' ? '2' : '↻')) : '';
     solveNet.set(colors, nxt ? { hl: nxt[0], ctrText: ctr } : {});
@@ -460,6 +477,12 @@
       b.onclick = function () { stopPlay(); S.idx = k; renderSolve(); };
       ml.appendChild(b);
     });
+    var cn = $('#centerNote');
+    if (S.relabel) {
+      cn.hidden = false;
+      cn.innerHTML = '<b>ศูนย์กลางผิดที่</b> ทำตามตาหมุนทั้งหมดก่อน ทุกหน้าจะเป็นสีเดียวกันยกเว้นศูนย์กลาง แล้วจึง:' +
+        S.fixTexts.map(function (t) { return '<br>• ' + t; }).join('');
+    } else cn.hidden = true;
     show('solve'); renderSolve();
   }
   function bindSolve() {
@@ -482,7 +505,15 @@
   /* ---------- คำนวณ ---------- */
   function doSolve() {
     var f = faceletString(), err = V.validate(f, Cube);
-    if (err) { $('#editErr').textContent = err; return Promise.resolve(); }
+    S.relabel = null; $('#fixBox').hidden = true;
+    if (err) {
+      $('#editErr').textContent = err;
+      if (f.indexOf('?') < 0 && /ชิ้นส่วน|บิด|กลับด้าน|สลับ/.test(err)) {
+        var dg = V.diagnoseCenters(f, Cube);
+        if (dg) { S.fix = dg; showFix(dg); }
+      }
+      return Promise.resolve();
+    }
     S.facelets = f;
     var b = $('#btnSolve'); b.disabled = true; b.textContent = 'กำลังคำนวณ…';
     return solver.solve(f).then(function (sol) {
@@ -491,6 +522,30 @@
     }).catch(function (e) {
       $('#editErr').textContent = 'คำนวณไม่สำเร็จ: ' + (e && e.message ? e.message : 'ลองตรวจสีอีกครั้ง');
     }).then(function () { b.disabled = false; b.textContent = 'คำนวณวิธีแก้'; });
+  }
+
+  function cycleText(cyc) {
+    // map[X]=Y : ชิ้นสี(ศูนย์กลาง X) ต้องไปอยู่ตำแหน่งที่ศูนย์กลางตอนนี้คือสีของ Y
+    var names = cyc.map(function (x) { return nameOf(FACES.indexOf(x)); });
+    return cyc.length === 2 ? 'สลับฝาศูนย์กลาง ' + names[0] + ' ↔ ' + names[1] : 'สลับฝาศูนย์กลางวนกัน ' + names.join(' → ') + ' → ' + names[0];
+  }
+  function fixTexts(dg) { return dg.cycles.map(cycleText); }
+  function showFix(dg) {
+    $('#fixText').innerHTML = '<b>ชิ้นมุมและขอบประกอบถูกต้อง แต่ศูนย์กลางวางผิดที่</b> (ถ้าสีทั้ง 54 ช่องถูกแล้ว) ต้องทำ: ' +
+      fixTexts(dg).map(function (t) { return '<br>• ' + t; }).join('') +
+      '<br>กดปุ่มด้านล่างเพื่อให้แอปคำนวณตาหมุนสำหรับชิ้นมุม/ขอบ แล้วค่อยสลับฝาศูนย์กลางตอนจบ';
+    $('#fixBox').hidden = false;
+    $('#fixBox').scrollIntoView({ block: 'nearest' });
+  }
+  function useFix() {
+    var dg = S.fix; if (!dg) return Promise.resolve();
+    var b = $('#btnFix'); b.disabled = true;
+    S.facelets = dg.t;
+    var inv = {}; FACES.forEach(function (f) { inv[dg.map[f]] = f; });
+    S.relabel = inv; S.fixTexts = fixTexts(dg);
+    return solver.solve(dg.t).then(openSolve).catch(function (e) {
+      $('#editErr').textContent = 'คำนวณไม่สำเร็จ: ' + (e && e.message ? e.message : '');
+    }).then(function () { b.disabled = false; });
   }
 
   /* ---------- เริ่มต้น ---------- */
@@ -516,6 +571,7 @@
     $('#btnManual').onclick = startManual;
     $('#btnDemo').onclick = startDemo;
     $('#btnSolve').onclick = doSolve;
+    $('#btnFix').onclick = useFix;
     $('#btnClear').onclick = function () { S.cells = new Array(54).fill(null); resetCenters(); refreshEdit(); };
     $('#btnRescan').onclick = enterScan;
     $('#tab3d').onclick = function () { tab(true); };

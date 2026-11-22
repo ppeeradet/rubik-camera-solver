@@ -144,6 +144,42 @@
     for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++) if (arr[i] > arr[j]) inv++;
     return inv & 1;
   }
+
+  // ศูนย์กลางไม่ตรงกับชิ้นมุม/ขอบ: หา "การจับคู่สีใหม่" ที่ทำให้ลูกถูกต้อง โดยถือว่าศูนย์กลางบางจุดวางผิดที่
+  // คืน null ถ้าไม่มี หรือ {t: facelets ใหม่ (ศูนย์กลางมาตรฐาน), map: {คลาสสี->ตำแหน่งปลายทาง}, cycles: [[X,Y,..]]}
+  function permutations(a) {
+    if (a.length <= 1) return [a];
+    var out = [];
+    a.forEach(function (x, i) {
+      permutations(a.filter(function (_, j) { return j !== i; })).forEach(function (p) { out.push([x].concat(p)); });
+    });
+    return out;
+  }
+  function diagnoseCenters(facelets, Cube) {
+    var best = null;
+    permutations(FACES).forEach(function (q) {
+      var map = {}; FACES.forEach(function (f, i) { map[f] = q[i]; });
+      var t = facelets.split('').map(function (ch, i) { return i % 9 === 4 ? FACES[(i - 4) / 9] : map[ch]; }).join('');
+      if (validate(t, Cube) !== null) return;
+      var moved = FACES.filter(function (f) { return map[f] !== f; }).length;
+      if (!best || moved < best.moved) best = { moved: moved, map: map, t: t };
+    });
+    if (!best) return null;
+    var seen = {}, cycles = [];
+    FACES.forEach(function (f) {
+      if (seen[f] || best.map[f] === f) return;
+      var c = [], x = f;
+      while (!seen[x]) { seen[x] = 1; c.push(x); x = best.map[x]; }
+      cycles.push(c);
+    });
+    return { t: best.t, map: best.map, cycles: cycles };
+  }
+  // คู่ตรงข้ามของศูนย์กลางต้องเป็น ขาว-เหลือง, ฟ้า-เขียว, แดง-ส้ม (scheme: face->'W'|'Y'|...)
+  function oppositeOk(scheme) {
+    var pairs = [['U', 'D'], ['F', 'B'], ['R', 'L']], good = { WY: 1, YW: 1, BG: 1, GB: 1, RO: 1, OR: 1 };
+    return pairs.every(function (p) { return good[scheme[p[0]] + scheme[p[1]]]; });
+  }
+
   // facelets: สตริง 54 ตัวอักษร ลำดับ URFDLB ; Cube = คลาส cubejs
   // คืน null ถ้าถูกต้อง หรือข้อความภาษาไทยบอกปัญหา
   function validate(facelets, Cube) {
@@ -170,7 +206,7 @@
 
   var api = {
     FACES: FACES, NAMES: NAMES, rgb2lab: rgb2lab, dE: dE, hungarian: hungarian,
-    sampleGrid: sampleGrid, nameCenters: nameCenters, classify: classify, validate: validate
+    sampleGrid: sampleGrid, nameCenters: nameCenters, classify: classify, validate: validate, diagnoseCenters: diagnoseCenters, oppositeOk: oppositeOk
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RCSVision = api;

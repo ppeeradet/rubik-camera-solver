@@ -1,6 +1,6 @@
 import sys, json, random, subprocess, time
 from playwright.sync_api import sync_playwright
-srv = subprocess.Popen([sys.executable,'-m','http.server','8765','-d','/home/claude/work/rcs'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+srv = subprocess.Popen([sys.executable,'-m','http.server','8765','-d',__import__('os').path.dirname(__import__('os').path.dirname(__import__('os').path.abspath(__file__)))],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 time.sleep(1)
 errs=[]
 try:
@@ -27,6 +27,20 @@ try:
     pg.click('.st[data-i="18"]',force=True)
     print('cell18',pg.evaluate("RCS.S.cells[18]"))
     pg.click('#btnSolve'); print('err:',pg.inner_text('#editErr'))
+    # รูบิคศูนย์กลางผิดที่ (ของแบมแบม): ตั้งศูนย์กลางด้วยการแตะ แล้วต้องมีกล่องแก้ศูนย์กลาง
+    pg.click('#goHome'); pg.click('#btnManual')
+    pg.click('#palette .sw[data-b="4"]'); pg.click('.st[data-i="13"]',force=True)
+    print('scheme',pg.evaluate("JSON.stringify(RCS.S.scheme)"))
+    pg.evaluate("""()=>{const s='UDRFUFDURBUFRRBUDDFBUBFULLLBDBBDRBFFLLLLLLDRDUFFDBURRR';RCS.S.cells=s.split('').map(c=>RCS.V.FACES.indexOf(c));RCS.openEdit('manual');}""")
+    pg.evaluate("RCS.S.scheme={U:'Y',R:'O',F:'B',D:'W',L:'R',B:'G'}"); pg.evaluate("RCS.openEdit('manual')")
+    pg.click('#btnSolve'); pg.wait_for_timeout(1500); print('E:',pg.inner_text('#editErr')[:30], errs, pg.evaluate('!!RCS.S.fix'), pg.evaluate('document.querySelector("#fixBox").hidden'))
+    pg.wait_for_selector('#fixBox:not([hidden])',timeout=10000)
+    print('fix:',pg.inner_text('#fixText')); pg.screenshot(path='/tmp/s_fix.png')
+    pg.click('#btnFix'); pg.wait_for_selector('#screen-solve:not([hidden])',timeout=20000)
+    print('note:',pg.inner_text('#centerNote')); pg.screenshot(path='/tmp/s_fixsolve.png')
+    n=pg.evaluate("RCS.S.moves.length")
+    for _ in range(n): pg.click('#btnNext')
+    print('pieces solved?',pg.evaluate("RCS.Cube.fromString(RCS.S.facelets).move(RCS.S.moves.join(' ')).isSolved()"))
     # random scrambles via synthetic classify
     res=pg.evaluate("""()=>{
       const V=RCS.V,C=RCS.Cube,F=V.FACES,rgb={U:[223,229,26],F:[10,162,187],R:[194,29,44],D:[242,245,243],L:[232,87,12],B:[70,212,30]};

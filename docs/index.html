@@ -101,7 +101,7 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
 .cf.D{transform:rotateX(-90deg) translateZ(calc(var(--s)/2))}
 .st{border-radius:9px;background:#cfd5db;border:0;padding:0;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;font:700 22px 'Prompt',sans-serif;color:var(--ink)}
 .st.ctr::after{content:"";width:24%;height:24%;border-radius:50%;background:rgba(28,34,48,.55)}
-.st.ctr{cursor:default}
+.st.ctr{cursor:pointer}
 .views{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}
 .view{min-height:42px;border:2px solid var(--line);border-radius:10px;background:#fff;font:700 14px 'Prompt',sans-serif;color:var(--ink);cursor:pointer;padding:0 2px}
 .view.on{border-color:var(--ink);background:var(--Y)}
@@ -142,6 +142,9 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
   .choice{min-height:0}
 }
 @media (prefers-reduced-motion:reduce){.cube3d{transition:none}}
+
+.fix{border-color:#e9b44c;background:#fff8e6}.fix p{margin:0 0 8px}
+#centerBox .cnt{margin:2px 2px 2px 0}#centerBox p.note{margin-top:6px}
 </style>
 </head>
 <body>
@@ -246,6 +249,11 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
     <div class="palette" id="palette" role="radiogroup" aria-label="เลือกสีที่จะใส่"></div>
     <div class="counts" id="counts"></div>
     <p class="err" id="editErr" role="alert"></p>
+    <div class="card" id="centerBox" hidden></div>
+    <div class="card fix" id="fixBox" hidden>
+      <p id="fixText"></p>
+      <button class="btn primary" id="btnFix" type="button">คำนวณตาหมุนต่อ (แล้วสลับฝาศูนย์กลางทีหลัง)</button>
+    </div>
     <div class="stack">
       <button class="btn primary" id="btnSolve" type="button">คำนวณวิธีแก้</button>
       <div class="row2">
@@ -258,6 +266,7 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
   <!-- 4. วิธีแก้ -->
   <section id="screen-solve" class="screen" hidden>
     <div class="card hold" id="holdHint"></div>
+    <div class="card fix" id="centerNote" hidden></div>
     <div class="card"><div class="net" id="solveNet"></div></div>
     <div class="move" id="moveBox" aria-live="polite">
       <div class="moveStep" id="moveStep"></div>
@@ -430,6 +439,42 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
     for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++) if (arr[i] > arr[j]) inv++;
     return inv & 1;
   }
+
+  // ศูนย์กลางไม่ตรงกับชิ้นมุม/ขอบ: หา "การจับคู่สีใหม่" ที่ทำให้ลูกถูกต้อง โดยถือว่าศูนย์กลางบางจุดวางผิดที่
+  // คืน null ถ้าไม่มี หรือ {t: facelets ใหม่ (ศูนย์กลางมาตรฐาน), map: {คลาสสี->ตำแหน่งปลายทาง}, cycles: [[X,Y,..]]}
+  function permutations(a) {
+    if (a.length <= 1) return [a];
+    var out = [];
+    a.forEach(function (x, i) {
+      permutations(a.filter(function (_, j) { return j !== i; })).forEach(function (p) { out.push([x].concat(p)); });
+    });
+    return out;
+  }
+  function diagnoseCenters(facelets, Cube) {
+    var best = null;
+    permutations(FACES).forEach(function (q) {
+      var map = {}; FACES.forEach(function (f, i) { map[f] = q[i]; });
+      var t = facelets.split('').map(function (ch, i) { return i % 9 === 4 ? FACES[(i - 4) / 9] : map[ch]; }).join('');
+      if (validate(t, Cube) !== null) return;
+      var moved = FACES.filter(function (f) { return map[f] !== f; }).length;
+      if (!best || moved < best.moved) best = { moved: moved, map: map, t: t };
+    });
+    if (!best) return null;
+    var seen = {}, cycles = [];
+    FACES.forEach(function (f) {
+      if (seen[f] || best.map[f] === f) return;
+      var c = [], x = f;
+      while (!seen[x]) { seen[x] = 1; c.push(x); x = best.map[x]; }
+      cycles.push(c);
+    });
+    return { t: best.t, map: best.map, cycles: cycles };
+  }
+  // คู่ตรงข้ามของศูนย์กลางต้องเป็น ขาว-เหลือง, ฟ้า-เขียว, แดง-ส้ม (scheme: face->'W'|'Y'|...)
+  function oppositeOk(scheme) {
+    var pairs = [['U', 'D'], ['F', 'B'], ['R', 'L']], good = { WY: 1, YW: 1, BG: 1, GB: 1, RO: 1, OR: 1 };
+    return pairs.every(function (p) { return good[scheme[p[0]] + scheme[p[1]]]; });
+  }
+
   // facelets: สตริง 54 ตัวอักษร ลำดับ URFDLB ; Cube = คลาส cubejs
   // คืน null ถ้าถูกต้อง หรือข้อความภาษาไทยบอกปัญหา
   function validate(facelets, Cube) {
@@ -456,7 +501,7 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
 
   var api = {
     FACES: FACES, NAMES: NAMES, rgb2lab: rgb2lab, dE: dE, hungarian: hungarian,
-    sampleGrid: sampleGrid, nameCenters: nameCenters, classify: classify, validate: validate
+    sampleGrid: sampleGrid, nameCenters: nameCenters, classify: classify, validate: validate, diagnoseCenters: diagnoseCenters, oppositeOk: oppositeOk
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RCSVision = api;
@@ -683,10 +728,18 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
     });
   }
   function paint(i) {
-    if (i % 9 === 4) return;
+    if (i % 9 === 4) { setCenter(Math.floor(i / 9)); return; }
     S.cells[i] = S.brush;
     refreshEdit();
   }
+  // เปลี่ยนสีศูนย์กลางของด้าน fi เป็นสีที่เลือกอยู่ (สลับกับด้านที่ถือสีนั้นอยู่ เพื่อให้ 6 ศูนย์กลางสีไม่ซ้ำ)
+  function setCenter(fi) {
+    var b = S.brush; if (b === null || b === fi) return;
+    var a = FACES[fi], c = FACES[b], t = S.scheme[a];
+    S.scheme[a] = S.scheme[c]; S.scheme[c] = t;
+    S.brush = fi; buildPalette(); refreshEdit();
+  }
+  function schemeFix() { S.fix = null; $('#fixBox').hidden = true; }
   function refreshEdit() {
     var colors = S.cells.map(function (c) { return c === null ? null : hexOf(c); });
     editNet.set(colors);
@@ -703,7 +756,13 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
       d.innerHTML = '<i style="background:' + hexOf(fi) + '"></i>' + nameOf(fi) + ' ' + n + '/9';
       cnt.appendChild(d);
     }
-    $('#editErr').textContent = '';
+    $('#editErr').textContent = ''; schemeFix();
+    var cb = $('#centerBox'), ok = V.oppositeOk(S.scheme);
+    cb.hidden = false;
+    cb.innerHTML = '<b>1) ตรวจศูนย์กลาง</b> ' + FACES.map(function (f, fi) {
+      return '<span class="cnt"><i style="background:' + hexOf(fi) + '"></i>' + FACE_TH[f] + ' ' + nameOf(fi) + '</span>';
+    }).join(' ') + '<p class="note">' + (ok ? 'ศูนย์กลางตรงข้ามกันเป็นคู่มาตรฐาน (ขาว-เหลือง, ฟ้า-เขียว, แดง-ส้ม) ถ้าสีศูนย์กลางบนรูบิคของคุณต่างจากนี้ แตะช่องตรงกลางบนโมเดลเพื่อแก้'
+      : 'คู่ตรงข้ามของศูนย์กลางไม่ใช่ขาว-เหลือง / ฟ้า-เขียว / แดง-ส้ม ตรวจสีศูนย์กลางอีกครั้ง (แตะช่องตรงกลางเพื่อแก้)') + '</p>';
   }
   function openEdit(kind) {
     S.from = kind;
@@ -889,7 +948,10 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
   function renderSolve() {
     var n = S.moves.length, i = S.idx;
     var st = stateAt(i);
-    var colors = st.split('').map(function (ch) { return hexOf(FACES.indexOf(ch)); });
+    var colors = st.split('').map(function (ch, k) {
+      if (S.relabel && k % 9 !== 4) ch = S.relabel[ch];
+      return hexOf(FACES.indexOf(ch));
+    });
     var nxt = i < n ? S.moves[i] : null;
     var ctr = nxt ? (nxt.slice(1) === "'" ? '↺' : (nxt.slice(1) === '2' ? '2' : '↻')) : '';
     solveNet.set(colors, nxt ? { hl: nxt[0], ctrText: ctr } : {});
@@ -924,6 +986,12 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
       b.onclick = function () { stopPlay(); S.idx = k; renderSolve(); };
       ml.appendChild(b);
     });
+    var cn = $('#centerNote');
+    if (S.relabel) {
+      cn.hidden = false;
+      cn.innerHTML = '<b>ศูนย์กลางผิดที่</b> ทำตามตาหมุนทั้งหมดก่อน ทุกหน้าจะเป็นสีเดียวกันยกเว้นศูนย์กลาง แล้วจึง:' +
+        S.fixTexts.map(function (t) { return '<br>• ' + t; }).join('');
+    } else cn.hidden = true;
     show('solve'); renderSolve();
   }
   function bindSolve() {
@@ -946,7 +1014,15 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
   /* ---------- คำนวณ ---------- */
   function doSolve() {
     var f = faceletString(), err = V.validate(f, Cube);
-    if (err) { $('#editErr').textContent = err; return Promise.resolve(); }
+    S.relabel = null; $('#fixBox').hidden = true;
+    if (err) {
+      $('#editErr').textContent = err;
+      if (f.indexOf('?') < 0 && /ชิ้นส่วน|บิด|กลับด้าน|สลับ/.test(err)) {
+        var dg = V.diagnoseCenters(f, Cube);
+        if (dg) { S.fix = dg; showFix(dg); }
+      }
+      return Promise.resolve();
+    }
     S.facelets = f;
     var b = $('#btnSolve'); b.disabled = true; b.textContent = 'กำลังคำนวณ…';
     return solver.solve(f).then(function (sol) {
@@ -955,6 +1031,30 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
     }).catch(function (e) {
       $('#editErr').textContent = 'คำนวณไม่สำเร็จ: ' + (e && e.message ? e.message : 'ลองตรวจสีอีกครั้ง');
     }).then(function () { b.disabled = false; b.textContent = 'คำนวณวิธีแก้'; });
+  }
+
+  function cycleText(cyc) {
+    // map[X]=Y : ชิ้นสี(ศูนย์กลาง X) ต้องไปอยู่ตำแหน่งที่ศูนย์กลางตอนนี้คือสีของ Y
+    var names = cyc.map(function (x) { return nameOf(FACES.indexOf(x)); });
+    return cyc.length === 2 ? 'สลับฝาศูนย์กลาง ' + names[0] + ' ↔ ' + names[1] : 'สลับฝาศูนย์กลางวนกัน ' + names.join(' → ') + ' → ' + names[0];
+  }
+  function fixTexts(dg) { return dg.cycles.map(cycleText); }
+  function showFix(dg) {
+    $('#fixText').innerHTML = '<b>ชิ้นมุมและขอบประกอบถูกต้อง แต่ศูนย์กลางวางผิดที่</b> (ถ้าสีทั้ง 54 ช่องถูกแล้ว) ต้องทำ: ' +
+      fixTexts(dg).map(function (t) { return '<br>• ' + t; }).join('') +
+      '<br>กดปุ่มด้านล่างเพื่อให้แอปคำนวณตาหมุนสำหรับชิ้นมุม/ขอบ แล้วค่อยสลับฝาศูนย์กลางตอนจบ';
+    $('#fixBox').hidden = false;
+    $('#fixBox').scrollIntoView({ block: 'nearest' });
+  }
+  function useFix() {
+    var dg = S.fix; if (!dg) return Promise.resolve();
+    var b = $('#btnFix'); b.disabled = true;
+    S.facelets = dg.t;
+    var inv = {}; FACES.forEach(function (f) { inv[dg.map[f]] = f; });
+    S.relabel = inv; S.fixTexts = fixTexts(dg);
+    return solver.solve(dg.t).then(openSolve).catch(function (e) {
+      $('#editErr').textContent = 'คำนวณไม่สำเร็จ: ' + (e && e.message ? e.message : '');
+    }).then(function () { b.disabled = false; });
   }
 
   /* ---------- เริ่มต้น ---------- */
@@ -980,6 +1080,7 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
     $('#btnManual').onclick = startManual;
     $('#btnDemo').onclick = startDemo;
     $('#btnSolve').onclick = doSolve;
+    $('#btnFix').onclick = useFix;
     $('#btnClear').onclick = function () { S.cells = new Array(54).fill(null); resetCenters(); refreshEdit(); };
     $('#btnRescan').onclick = enterScan;
     $('#tab3d').onclick = function () { tab(true); };
