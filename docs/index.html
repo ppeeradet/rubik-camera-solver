@@ -88,9 +88,9 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#efe9da;padding:4px;border-radius:12px}
 .tab{min-height:42px;border:0;border-radius:9px;background:transparent;font-weight:700;font-size:15px;color:#4a4f5c;cursor:pointer}
 .tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18)}
-.scene{height:300px;perspective:900px;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;overflow:hidden}
+.scene{--s:clamp(140px,min(32vh,52vw),240px);height:calc(var(--s)*1.8);perspective:1500px;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;overflow:hidden}
 .scene:active{cursor:grabbing}
-.cube3d{--s:210px;width:var(--s);height:var(--s);position:relative;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.cube3d{width:var(--s);height:var(--s);position:relative;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
 .cube3d.drag{transition:none}
 .cf{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:5px;padding:5px;background:var(--ink);border-radius:12px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .cf.F{transform:translateZ(calc(var(--s)/2))}
@@ -151,6 +151,44 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
 .dock .move{padding:8px 12px}
 .dock .m.big{width:54px;height:60px;font-size:30px}
 .dock .m.big sup{font-size:19px}
+
+/* โมเดลคู่กับตาหมุน */
+.cf .arrow{position:absolute;inset:10%;width:80%;height:80%;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.cube3d.hasAct .cf:not(.act) .st{opacity:.5}
+.cf.act{box-shadow:0 0 0 4px #1f6feb;background:#1f6feb}
+.model{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px}
+.model .scene{width:100%}
+.btn.small{min-height:40px;font-size:14px}
+details.card>summary{cursor:pointer;font-weight:700;font-family:'Prompt',sans-serif;min-height:32px;display:flex;align-items:center}
+details.card[open]>summary{margin-bottom:8px}
+.colL,.colR{display:flex;flex-direction:column;gap:12px;min-width:0}
+.head{display:flex;flex-direction:column;gap:8px}
+#screen-edit,#screen-solve{gap:12px}
+
+/* มือถือ: โมเดลค้างด้านบน แถบปุ่มค้างด้านล่าง */
+@media (max-width:767px){
+  #screen-solve .model{position:sticky;top:0;z-index:4;background:var(--paper)}
+  #screen-solve .scene{--s:clamp(130px,min(27vh,50vw),230px);height:calc(var(--s)*1.75)}
+  #screen-solve{display:flex}
+  #screen-solve .colL,#screen-solve .colR{display:contents}
+  #screen-solve .hold{font-size:13px;padding:8px 10px}
+}
+/* iPad / จอกว้าง: สองคอลัมน์ */
+@media (min-width:768px){
+  .app{max-width:1040px;padding:14px 28px calc(28px + env(safe-area-inset-bottom))}
+  #screen-home,#screen-scan{max-width:640px;margin:0 auto;width:100%}
+  #screen-edit,#screen-solve{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px 28px;align-items:start}
+  #screen-edit .head{grid-column:1/-1}
+  #screen-solve .colL{position:sticky;top:12px}
+  #screen-solve .scene,#screen-edit .scene{--s:clamp(200px,min(24vw,36vh),320px);height:calc(var(--s)*1.8)}
+  .dock{position:static;box-shadow:none;padding:0}
+  .btn{font-size:17px}
+  .moveText{font-size:19px}
+  .m.big{width:76px;height:84px;font-size:42px}
+  .dock .m.big{width:76px;height:84px;font-size:42px}
+  .palette{gap:10px}.sw{min-height:60px;font-size:13px}
+  h1{font-size:34px}h1.h1s{font-size:28px}
+}
 </style>
 </head>
 <body>
@@ -241,8 +279,9 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
 
   <!-- 3. ตั้งค่า/ตรวจสี -->
   <section id="screen-edit" class="screen" hidden>
-    <h1 class="h1s" id="editTitle">ตั้งสีของรูบิค</h1>
-    <p class="lead" id="editLead">เลือกสีจากแถบสี แล้วแตะช่องบนโมเดลเพื่อใส่สี ลากเพื่อหมุนโมเดล ช่องตรงกลางของแต่ละด้านคงที่</p>
+    <div class="head"><h1 class="h1s" id="editTitle">ตั้งสีของรูบิค</h1>
+    <p class="lead" id="editLead">เลือกสีจากแถบสี แล้วแตะช่องบนโมเดลเพื่อใส่สี ลากเพื่อหมุนโมเดล ช่องตรงกลางของแต่ละด้านคงที่</p></div>
+    <div class="colL">
     <div class="tabs" role="tablist">
       <button class="tab on" id="tab3d" role="tab" type="button">โมเดล 3 มิติ</button>
       <button class="tab" id="tabNet" role="tab" type="button">แผ่นคลี่</button>
@@ -252,6 +291,8 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
       <div class="views" id="views" role="group" aria-label="เลือกด้านที่ต้องการดู"></div>
     </div>
     <div class="card" id="paneNet" hidden><div class="net" id="editNet"></div></div>
+    </div>
+    <div class="colR">
     <div class="palette" id="palette" role="radiogroup" aria-label="เลือกสีที่จะใส่"></div>
     <div class="counts" id="counts"></div>
     <p class="err" id="editErr" role="alert"></p>
@@ -267,34 +308,43 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
         <button class="btn ghost" id="btnRescan" type="button">กลับไปสแกน</button>
       </div>
     </div>
+    </div>
   </section>
 
   <!-- 4. วิธีแก้ -->
   <section id="screen-solve" class="screen" hidden>
-    <div class="card hold" id="holdHint"></div>
-    <div class="card fix" id="centerNote" hidden></div>
-    <div class="card"><div class="net" id="solveNet"></div></div>
-    <div class="dock" id="dock">
-    <div class="move" id="moveBox" aria-live="polite">
-      <div class="moveStep" id="moveStep"></div>
-      <div class="moveTile" id="moveTile"></div>
-      <div class="moveText" id="moveText"></div>
-      <div class="moveNext" id="moveNext"></div>
+    <div class="colL">
+      <div class="card model">
+        <div class="scene" id="sceneS" aria-label="โมเดลรูบิค ลากเพื่อหมุนดู"><div class="cube3d" id="cube3dS"></div></div>
+        <button class="btn ghost small" id="btnLook" type="button" hidden>กลับไปมองด้านที่ต้องหมุน</button>
+      </div>
+      <div class="card hold" id="holdHint"></div>
+      <div class="card fix" id="centerNote" hidden></div>
     </div>
-    <div class="bar">
-      <button class="btn" id="btnPrev" type="button" aria-label="ย้อนกลับ 1 ตา">ย้อนกลับ</button>
-      <button class="btn primary" id="btnNext" type="button">ตาถัดไป</button>
+    <div class="colR">
+      <div class="dock" id="dock">
+        <div class="move" id="moveBox" aria-live="polite">
+          <div class="moveStep" id="moveStep"></div>
+          <div class="moveTile" id="moveTile"></div>
+          <div class="moveText" id="moveText"></div>
+          <div class="moveNext" id="moveNext"></div>
+        </div>
+        <div class="bar">
+          <button class="btn" id="btnPrev" type="button" aria-label="ย้อนกลับ 1 ตา">◀ ย้อนกลับ</button>
+          <button class="btn primary" id="btnNext" type="button">ตาถัดไป ▶</button>
+        </div>
+      </div>
+      <div class="row2">
+        <button class="btn" id="btnPlay" type="button">เล่นอัตโนมัติ</button>
+        <button class="btn ghost" id="btnReset" type="button">กลับไปตาแรก</button>
+      </div>
+      <details class="card" id="netCard"><summary>ดูแผ่นคลี่</summary><div class="net" id="solveNet"></div></details>
+      <div class="card">
+        <h2>ทุกตาที่ต้องหมุน</h2>
+        <div class="moves" id="movesList"></div>
+      </div>
+      <button class="btn ghost" id="btnAgain" type="button">แก้ลูกใหม่</button>
     </div>
-    </div>
-    <div class="row2">
-      <button class="btn" id="btnPlay" type="button">เล่นอัตโนมัติ</button>
-      <button class="btn ghost" id="btnReset" type="button">กลับไปตาแรก</button>
-    </div>
-    <div class="card">
-      <h2>ทุกตาที่ต้องหมุน</h2>
-      <div class="moves" id="movesList"></div>
-    </div>
-    <button class="btn ghost" id="btnAgain" type="button">แก้ลูกใหม่</button>
   </section>
 
   <footer class="foot">ตัวแก้: cubejs (MIT) · อัลกอริทึม Kociemba · ใช้ได้ทั้งออฟไลน์หลังโหลดหน้า</footer>
@@ -651,21 +701,92 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
     };
   }
 
-  /* ---------- โมเดล 3 มิติ ---------- */
-  var cube3 = { rx: -28, ry: -35, els: [] };
+  /* ---------- โมเดล 3 มิติ (ใช้ทั้งหน้าตั้งสีและหน้าวิธีแก้) ---------- */
   var VIEWS = { F: [0, 0], R: [0, -90], B: [0, -180], L: [0, 90], U: [-90, 0], D: [90, 0] };
-  function build3d() {
-    var root = $('#cube3d'); root.innerHTML = '';
+  var ARROWS = {
+    cw: '<path d="M50 14 A36 36 0 1 1 14 50" fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round"/>' +
+      '<path d="M50 14 A36 36 0 1 1 14 50" fill="none" stroke="#1c2230" stroke-width="9" stroke-linecap="round"/>' +
+      '<polygon points="0,52 28,52 14,28" fill="#1c2230" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>',
+    half: '<path d="M14 62 A36 36 0 0 1 86 62" fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round"/>' +
+      '<path d="M14 62 A36 36 0 0 1 86 62" fill="none" stroke="#1c2230" stroke-width="9" stroke-linecap="round"/>' +
+      '<polygon points="72,60 100,60 86,84" fill="#1c2230" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>' +
+      '<polygon points="0,60 28,60 14,84" fill="#1c2230" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>' +
+      '<text x="50" y="72" text-anchor="middle" font-family="Prompt,sans-serif" font-weight="800" font-size="30" fill="#1c2230" stroke="#fff" stroke-width="5" paint-order="stroke">180°</text>'
+  };
+  function makeCube3d(root, scene, onTap) {
+    var o = { rx: -28, ry: -35, els: [], faces: {} };
+    root.innerHTML = '';
     FACES.forEach(function (f, fi) {
-      var face = document.createElement('div'); face.className = 'cf ' + f;
+      var face = document.createElement('div'); face.className = 'cf ' + f; o.faces[f] = face;
       for (var j = 0; j < 9; j++) {
         var b = document.createElement('button'); b.type = 'button'; b.className = 'st' + (j === 4 ? ' ctr' : '');
-        b.dataset.i = String(fi * 9 + j);
+        b.dataset.i = String(fi * 9 + j); b.tabIndex = onTap ? 0 : -1;
         b.setAttribute('aria-label', 'ด้าน' + FACE_TH[f] + ' แถว ' + (Math.floor(j / 3) + 1) + ' ช่อง ' + (j % 3 + 1));
-        face.appendChild(b); cube3.els[fi * 9 + j] = b;
+        face.appendChild(b); o.els[fi * 9 + j] = b;
       }
       root.appendChild(face);
     });
+    o.apply = function () { root.style.transform = 'rotateX(' + o.rx + 'deg) rotateY(' + o.ry + 'deg)'; };
+    o.set = function (rx, ry) {
+      o.rx = rx; o.ry = ry + 360 * Math.round((o.ry - ry) / 360); o.apply();
+    };
+    o.view = function (f, tilt) {
+      var t = VIEWS[f], side = 'RFLB'.indexOf(f) >= 0;
+      var rx = t[0], ry = t[1];
+      if (tilt) { if (side) { rx = -22; ry -= 28; } else rx += (f === 'U' ? 25 : -25); }
+      o.set(rx, ry);
+    };
+    o.arrow = function (f, kind) {
+      FACES.forEach(function (x) {
+        var face = o.faces[x], old = face.querySelector('svg'); if (old) old.remove();
+        face.classList.toggle('act', x === f);
+      });
+      root.classList.toggle('hasAct', !!f);
+      if (!f || !kind) return;
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('class', 'arrow');
+      svg.innerHTML = kind === 'half' ? ARROWS.half : (kind === 'ccw' ? '<g transform="translate(100,0) scale(-1,1)">' + ARROWS.cw + '</g>' : ARROWS.cw);
+      o.faces[f].appendChild(svg);
+    };
+    o.colors = function (colors) {
+      for (var i = 0; i < 54; i++) {
+        var el = o.els[i];
+        el.style.background = colors[i] || '#cfd5db';
+        el.style.color = colors[i] ? textOn(colors[i]) : '#1c2230';
+      }
+    };
+    o.apply();
+    var st = null;
+    scene.addEventListener('pointerdown', function (e) {
+      st = { x: e.clientX, y: e.clientY, rx: o.rx, ry: o.ry, moved: false, id: e.pointerId, tgt: e.target.closest('.st') };
+    });
+    scene.addEventListener('pointermove', function (e) {
+      if (!st) return;
+      var dx = e.clientX - st.x, dy = e.clientY - st.y;
+      if (!st.moved && Math.hypot(dx, dy) > 7) {
+        st.moved = true; root.classList.add('drag');
+        try { scene.setPointerCapture(st.id); } catch (_) { /* ignore */ }
+        if (o.onDrag) o.onDrag();
+      }
+      if (st.moved) {
+        o.ry = st.ry + dx * 0.6;
+        o.rx = Math.max(-90, Math.min(90, st.rx - dy * 0.6));
+        o.apply();
+      }
+    });
+    scene.addEventListener('pointerup', function () {
+      if (!st) return;
+      root.classList.remove('drag');
+      if (!st.moved && st.tgt && onTap) onTap(+st.tgt.dataset.i);
+      st = null;
+    });
+    scene.addEventListener('pointercancel', function () { root.classList.remove('drag'); st = null; });
+    return o;
+  }
+  var cube3, cubeS;
+  function build3d() {
+    cube3 = makeCube3d($('#cube3d'), $('#scene'), paint);
+    cube3.onDrag = function () { document.querySelectorAll('.view.on').forEach(function (v) { v.classList.remove('on'); }); };
     var vb = $('#views'); vb.innerHTML = '';
     ['F', 'R', 'B', 'L', 'U', 'D'].forEach(function (f) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'view'; b.dataset.f = f;
@@ -673,41 +794,18 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
       b.addEventListener('click', function () { snapView(f); });
       vb.appendChild(b);
     });
-    applyRot();
-    var sc = $('#scene'), st = null;
-    sc.addEventListener('pointerdown', function (e) {
-      st = { x: e.clientX, y: e.clientY, rx: cube3.rx, ry: cube3.ry, moved: false, id: e.pointerId, tgt: e.target.closest('.st') };
-    });
-    sc.addEventListener('pointermove', function (e) {
-      if (!st) return;
-      var dx = e.clientX - st.x, dy = e.clientY - st.y;
-      if (!st.moved && Math.hypot(dx, dy) > 7) {
-        st.moved = true; $('#cube3d').classList.add('drag');
-        try { sc.setPointerCapture(st.id); } catch (_) { /* ignore */ }
-        document.querySelectorAll('.view.on').forEach(function (v) { v.classList.remove('on'); });
-      }
-      if (st.moved) {
-        cube3.ry = st.ry + dx * 0.6;
-        cube3.rx = Math.max(-90, Math.min(90, st.rx - dy * 0.6));
-        applyRot();
-      }
-    });
-    function end() {
-      if (!st) return;
-      $('#cube3d').classList.remove('drag');
-      if (!st.moved && st.tgt) paint(+st.tgt.dataset.i);
-      st = null;
-    }
-    sc.addEventListener('pointerup', end);
-    sc.addEventListener('pointercancel', function () { $('#cube3d').classList.remove('drag'); st = null; });
+    cubeS = makeCube3d($('#cube3dS'), $('#sceneS'), null);
+    cubeS.onDrag = function () { $('#btnLook').hidden = false; };
+    $('#btnLook').onclick = function () { $('#btnLook').hidden = true; lookAtMove(); };
   }
-  function applyRot() { $('#cube3d').style.transform = 'rotateX(' + cube3.rx + 'deg) rotateY(' + cube3.ry + 'deg)'; }
   function snapView(f) {
-    var t = VIEWS[f];
-    cube3.rx = t[0];
-    cube3.ry = t[1] + 360 * Math.round((cube3.ry - t[1]) / 360);
-    applyRot();
+    cube3.view(f, false);
     document.querySelectorAll('.view').forEach(function (v) { v.classList.toggle('on', v.dataset.f === f); });
+  }
+  function lookAtMove() {
+    var m = S.idx < S.moves.length ? S.moves[S.idx] : null;
+    if (!m) { cubeS.set(-28, -35); return; }
+    cubeS.view(m[0], true);
   }
 
   /* ---------- หน้าตั้งค่า/ตรวจสี ---------- */
@@ -751,11 +849,7 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
   function refreshEdit() {
     var colors = S.cells.map(function (c) { return c === null ? null : hexOf(c); });
     editNet.set(colors);
-    for (var i = 0; i < 54; i++) {
-      var el = cube3.els[i]; if (!el) continue;
-      el.style.background = colors[i] || '#cfd5db';
-      el.style.color = colors[i] ? textOn(colors[i]) : '#1c2230';
-    }
+    cube3.colors(colors);
     var cnt = $('#counts'); cnt.innerHTML = '';
     var total = 0;
     for (var fi = 0; fi < 6; fi++) {
@@ -963,6 +1057,9 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
     var nxt = i < n ? S.moves[i] : null;
     var ctr = nxt ? (nxt.slice(1) === "'" ? '↺' : (nxt.slice(1) === '2' ? '2' : '↻')) : '';
     solveNet.set(colors, nxt ? { hl: nxt[0], ctrText: ctr } : {});
+    cubeS.colors(colors);
+    cubeS.arrow(nxt ? nxt[0] : null, nxt ? (nxt.slice(1) === '2' ? 'half' : (nxt.slice(1) === "'" ? 'ccw' : 'cw')) : null);
+    $('#btnLook').hidden = true; lookAtMove();
     $('#moveStep').textContent = i < n ? 'ตาที่ ' + (i + 1) + ' จาก ' + n : (n ? 'ครบ ' + n + ' ตาแล้ว' : '');
     if (nxt) {
       $('#moveTile').innerHTML = tileHtml(nxt, 'big');

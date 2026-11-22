@@ -96,8 +96,9 @@
 
   <!-- 3. ตั้งค่า/ตรวจสี -->
   <section id="screen-edit" class="screen" hidden>
-    <h1 class="h1s" id="editTitle">ตั้งสีของรูบิค</h1>
-    <p class="lead" id="editLead">เลือกสีจากแถบสี แล้วแตะช่องบนโมเดลเพื่อใส่สี ลากเพื่อหมุนโมเดล ช่องตรงกลางของแต่ละด้านคงที่</p>
+    <div class="head"><h1 class="h1s" id="editTitle">ตั้งสีของรูบิค</h1>
+    <p class="lead" id="editLead">เลือกสีจากแถบสี แล้วแตะช่องบนโมเดลเพื่อใส่สี ลากเพื่อหมุนโมเดล ช่องตรงกลางของแต่ละด้านคงที่</p></div>
+    <div class="colL">
     <div class="tabs" role="tablist">
       <button class="tab on" id="tab3d" role="tab" type="button">โมเดล 3 มิติ</button>
       <button class="tab" id="tabNet" role="tab" type="button">แผ่นคลี่</button>
@@ -107,6 +108,8 @@
       <div class="views" id="views" role="group" aria-label="เลือกด้านที่ต้องการดู"></div>
     </div>
     <div class="card" id="paneNet" hidden><div class="net" id="editNet"></div></div>
+    </div>
+    <div class="colR">
     <div class="palette" id="palette" role="radiogroup" aria-label="เลือกสีที่จะใส่"></div>
     <div class="counts" id="counts"></div>
     <p class="err" id="editErr" role="alert"></p>
@@ -122,34 +125,43 @@
         <button class="btn ghost" id="btnRescan" type="button">กลับไปสแกน</button>
       </div>
     </div>
+    </div>
   </section>
 
   <!-- 4. วิธีแก้ -->
   <section id="screen-solve" class="screen" hidden>
-    <div class="card hold" id="holdHint"></div>
-    <div class="card fix" id="centerNote" hidden></div>
-    <div class="card"><div class="net" id="solveNet"></div></div>
-    <div class="dock" id="dock">
-    <div class="move" id="moveBox" aria-live="polite">
-      <div class="moveStep" id="moveStep"></div>
-      <div class="moveTile" id="moveTile"></div>
-      <div class="moveText" id="moveText"></div>
-      <div class="moveNext" id="moveNext"></div>
+    <div class="colL">
+      <div class="card model">
+        <div class="scene" id="sceneS" aria-label="โมเดลรูบิค ลากเพื่อหมุนดู"><div class="cube3d" id="cube3dS"></div></div>
+        <button class="btn ghost small" id="btnLook" type="button" hidden>กลับไปมองด้านที่ต้องหมุน</button>
+      </div>
+      <div class="card hold" id="holdHint"></div>
+      <div class="card fix" id="centerNote" hidden></div>
     </div>
-    <div class="bar">
-      <button class="btn" id="btnPrev" type="button" aria-label="ย้อนกลับ 1 ตา">ย้อนกลับ</button>
-      <button class="btn primary" id="btnNext" type="button">ตาถัดไป</button>
+    <div class="colR">
+      <div class="dock" id="dock">
+        <div class="move" id="moveBox" aria-live="polite">
+          <div class="moveStep" id="moveStep"></div>
+          <div class="moveTile" id="moveTile"></div>
+          <div class="moveText" id="moveText"></div>
+          <div class="moveNext" id="moveNext"></div>
+        </div>
+        <div class="bar">
+          <button class="btn" id="btnPrev" type="button" aria-label="ย้อนกลับ 1 ตา">◀ ย้อนกลับ</button>
+          <button class="btn primary" id="btnNext" type="button">ตาถัดไป ▶</button>
+        </div>
+      </div>
+      <div class="row2">
+        <button class="btn" id="btnPlay" type="button">เล่นอัตโนมัติ</button>
+        <button class="btn ghost" id="btnReset" type="button">กลับไปตาแรก</button>
+      </div>
+      <details class="card" id="netCard"><summary>ดูแผ่นคลี่</summary><div class="net" id="solveNet"></div></details>
+      <div class="card">
+        <h2>ทุกตาที่ต้องหมุน</h2>
+        <div class="moves" id="movesList"></div>
+      </div>
+      <button class="btn ghost" id="btnAgain" type="button">แก้ลูกใหม่</button>
     </div>
-    </div>
-    <div class="row2">
-      <button class="btn" id="btnPlay" type="button">เล่นอัตโนมัติ</button>
-      <button class="btn ghost" id="btnReset" type="button">กลับไปตาแรก</button>
-    </div>
-    <div class="card">
-      <h2>ทุกตาที่ต้องหมุน</h2>
-      <div class="moves" id="movesList"></div>
-    </div>
-    <button class="btn ghost" id="btnAgain" type="button">แก้ลูกใหม่</button>
   </section>
 
   <footer class="foot">ตัวแก้: cubejs (MIT) · อัลกอริทึม Kociemba · ใช้ได้ทั้งออฟไลน์หลังโหลดหน้า</footer>

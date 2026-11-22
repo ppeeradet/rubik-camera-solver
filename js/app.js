@@ -134,21 +134,92 @@
     };
   }
 
-  /* ---------- โมเดล 3 มิติ ---------- */
-  var cube3 = { rx: -28, ry: -35, els: [] };
+  /* ---------- โมเดล 3 มิติ (ใช้ทั้งหน้าตั้งสีและหน้าวิธีแก้) ---------- */
   var VIEWS = { F: [0, 0], R: [0, -90], B: [0, -180], L: [0, 90], U: [-90, 0], D: [90, 0] };
-  function build3d() {
-    var root = $('#cube3d'); root.innerHTML = '';
+  var ARROWS = {
+    cw: '<path d="M50 14 A36 36 0 1 1 14 50" fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round"/>' +
+      '<path d="M50 14 A36 36 0 1 1 14 50" fill="none" stroke="#1c2230" stroke-width="9" stroke-linecap="round"/>' +
+      '<polygon points="0,52 28,52 14,28" fill="#1c2230" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>',
+    half: '<path d="M14 62 A36 36 0 0 1 86 62" fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round"/>' +
+      '<path d="M14 62 A36 36 0 0 1 86 62" fill="none" stroke="#1c2230" stroke-width="9" stroke-linecap="round"/>' +
+      '<polygon points="72,60 100,60 86,84" fill="#1c2230" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>' +
+      '<polygon points="0,60 28,60 14,84" fill="#1c2230" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>' +
+      '<text x="50" y="72" text-anchor="middle" font-family="Prompt,sans-serif" font-weight="800" font-size="30" fill="#1c2230" stroke="#fff" stroke-width="5" paint-order="stroke">180°</text>'
+  };
+  function makeCube3d(root, scene, onTap) {
+    var o = { rx: -28, ry: -35, els: [], faces: {} };
+    root.innerHTML = '';
     FACES.forEach(function (f, fi) {
-      var face = document.createElement('div'); face.className = 'cf ' + f;
+      var face = document.createElement('div'); face.className = 'cf ' + f; o.faces[f] = face;
       for (var j = 0; j < 9; j++) {
         var b = document.createElement('button'); b.type = 'button'; b.className = 'st' + (j === 4 ? ' ctr' : '');
-        b.dataset.i = String(fi * 9 + j);
+        b.dataset.i = String(fi * 9 + j); b.tabIndex = onTap ? 0 : -1;
         b.setAttribute('aria-label', 'ด้าน' + FACE_TH[f] + ' แถว ' + (Math.floor(j / 3) + 1) + ' ช่อง ' + (j % 3 + 1));
-        face.appendChild(b); cube3.els[fi * 9 + j] = b;
+        face.appendChild(b); o.els[fi * 9 + j] = b;
       }
       root.appendChild(face);
     });
+    o.apply = function () { root.style.transform = 'rotateX(' + o.rx + 'deg) rotateY(' + o.ry + 'deg)'; };
+    o.set = function (rx, ry) {
+      o.rx = rx; o.ry = ry + 360 * Math.round((o.ry - ry) / 360); o.apply();
+    };
+    o.view = function (f, tilt) {
+      var t = VIEWS[f], side = 'RFLB'.indexOf(f) >= 0;
+      var rx = t[0], ry = t[1];
+      if (tilt) { if (side) { rx = -22; ry -= 28; } else rx += (f === 'U' ? 25 : -25); }
+      o.set(rx, ry);
+    };
+    o.arrow = function (f, kind) {
+      FACES.forEach(function (x) {
+        var face = o.faces[x], old = face.querySelector('svg'); if (old) old.remove();
+        face.classList.toggle('act', x === f);
+      });
+      root.classList.toggle('hasAct', !!f);
+      if (!f || !kind) return;
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('class', 'arrow');
+      svg.innerHTML = kind === 'half' ? ARROWS.half : (kind === 'ccw' ? '<g transform="translate(100,0) scale(-1,1)">' + ARROWS.cw + '</g>' : ARROWS.cw);
+      o.faces[f].appendChild(svg);
+    };
+    o.colors = function (colors) {
+      for (var i = 0; i < 54; i++) {
+        var el = o.els[i];
+        el.style.background = colors[i] || '#cfd5db';
+        el.style.color = colors[i] ? textOn(colors[i]) : '#1c2230';
+      }
+    };
+    o.apply();
+    var st = null;
+    scene.addEventListener('pointerdown', function (e) {
+      st = { x: e.clientX, y: e.clientY, rx: o.rx, ry: o.ry, moved: false, id: e.pointerId, tgt: e.target.closest('.st') };
+    });
+    scene.addEventListener('pointermove', function (e) {
+      if (!st) return;
+      var dx = e.clientX - st.x, dy = e.clientY - st.y;
+      if (!st.moved && Math.hypot(dx, dy) > 7) {
+        st.moved = true; root.classList.add('drag');
+        try { scene.setPointerCapture(st.id); } catch (_) { /* ignore */ }
+        if (o.onDrag) o.onDrag();
+      }
+      if (st.moved) {
+        o.ry = st.ry + dx * 0.6;
+        o.rx = Math.max(-90, Math.min(90, st.rx - dy * 0.6));
+        o.apply();
+      }
+    });
+    scene.addEventListener('pointerup', function () {
+      if (!st) return;
+      root.classList.remove('drag');
+      if (!st.moved && st.tgt && onTap) onTap(+st.tgt.dataset.i);
+      st = null;
+    });
+    scene.addEventListener('pointercancel', function () { root.classList.remove('drag'); st = null; });
+    return o;
+  }
+  var cube3, cubeS;
+  function build3d() {
+    cube3 = makeCube3d($('#cube3d'), $('#scene'), paint);
+    cube3.onDrag = function () { document.querySelectorAll('.view.on').forEach(function (v) { v.classList.remove('on'); }); };
     var vb = $('#views'); vb.innerHTML = '';
     ['F', 'R', 'B', 'L', 'U', 'D'].forEach(function (f) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'view'; b.dataset.f = f;
@@ -156,41 +227,18 @@
       b.addEventListener('click', function () { snapView(f); });
       vb.appendChild(b);
     });
-    applyRot();
-    var sc = $('#scene'), st = null;
-    sc.addEventListener('pointerdown', function (e) {
-      st = { x: e.clientX, y: e.clientY, rx: cube3.rx, ry: cube3.ry, moved: false, id: e.pointerId, tgt: e.target.closest('.st') };
-    });
-    sc.addEventListener('pointermove', function (e) {
-      if (!st) return;
-      var dx = e.clientX - st.x, dy = e.clientY - st.y;
-      if (!st.moved && Math.hypot(dx, dy) > 7) {
-        st.moved = true; $('#cube3d').classList.add('drag');
-        try { sc.setPointerCapture(st.id); } catch (_) { /* ignore */ }
-        document.querySelectorAll('.view.on').forEach(function (v) { v.classList.remove('on'); });
-      }
-      if (st.moved) {
-        cube3.ry = st.ry + dx * 0.6;
-        cube3.rx = Math.max(-90, Math.min(90, st.rx - dy * 0.6));
-        applyRot();
-      }
-    });
-    function end() {
-      if (!st) return;
-      $('#cube3d').classList.remove('drag');
-      if (!st.moved && st.tgt) paint(+st.tgt.dataset.i);
-      st = null;
-    }
-    sc.addEventListener('pointerup', end);
-    sc.addEventListener('pointercancel', function () { $('#cube3d').classList.remove('drag'); st = null; });
+    cubeS = makeCube3d($('#cube3dS'), $('#sceneS'), null);
+    cubeS.onDrag = function () { $('#btnLook').hidden = false; };
+    $('#btnLook').onclick = function () { $('#btnLook').hidden = true; lookAtMove(); };
   }
-  function applyRot() { $('#cube3d').style.transform = 'rotateX(' + cube3.rx + 'deg) rotateY(' + cube3.ry + 'deg)'; }
   function snapView(f) {
-    var t = VIEWS[f];
-    cube3.rx = t[0];
-    cube3.ry = t[1] + 360 * Math.round((cube3.ry - t[1]) / 360);
-    applyRot();
+    cube3.view(f, false);
     document.querySelectorAll('.view').forEach(function (v) { v.classList.toggle('on', v.dataset.f === f); });
+  }
+  function lookAtMove() {
+    var m = S.idx < S.moves.length ? S.moves[S.idx] : null;
+    if (!m) { cubeS.set(-28, -35); return; }
+    cubeS.view(m[0], true);
   }
 
   /* ---------- หน้าตั้งค่า/ตรวจสี ---------- */
@@ -234,11 +282,7 @@
   function refreshEdit() {
     var colors = S.cells.map(function (c) { return c === null ? null : hexOf(c); });
     editNet.set(colors);
-    for (var i = 0; i < 54; i++) {
-      var el = cube3.els[i]; if (!el) continue;
-      el.style.background = colors[i] || '#cfd5db';
-      el.style.color = colors[i] ? textOn(colors[i]) : '#1c2230';
-    }
+    cube3.colors(colors);
     var cnt = $('#counts'); cnt.innerHTML = '';
     var total = 0;
     for (var fi = 0; fi < 6; fi++) {
@@ -446,6 +490,9 @@
     var nxt = i < n ? S.moves[i] : null;
     var ctr = nxt ? (nxt.slice(1) === "'" ? '↺' : (nxt.slice(1) === '2' ? '2' : '↻')) : '';
     solveNet.set(colors, nxt ? { hl: nxt[0], ctrText: ctr } : {});
+    cubeS.colors(colors);
+    cubeS.arrow(nxt ? nxt[0] : null, nxt ? (nxt.slice(1) === '2' ? 'half' : (nxt.slice(1) === "'" ? 'ccw' : 'cw')) : null);
+    $('#btnLook').hidden = true; lookAtMove();
     $('#moveStep').textContent = i < n ? 'ตาที่ ' + (i + 1) + ' จาก ' + n : (n ? 'ครบ ' + n + ' ตาแล้ว' : '');
     if (nxt) {
       $('#moveTile').innerHTML = tileHtml(nxt, 'big');
