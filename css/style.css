@@ -137,3 +137,9 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
 
 .fix{border-color:#e9b44c;background:#fff8e6}.fix p{margin:0 0 8px}
 #centerBox .cnt{margin:2px 2px 2px 0}#centerBox p.note{margin-top:6px}
+
+.dock{position:sticky;bottom:0;z-index:5;display:flex;flex-direction:column;gap:8px;background:var(--paper);padding:8px 0 calc(8px + env(safe-area-inset-bottom));box-shadow:0 -10px 12px -8px rgba(251,249,244,1);touch-action:pan-y}
+.dock .btn{min-height:56px;font-size:18px}
+.dock .move{padding:8px 12px}
+.dock .m.big{width:54px;height:60px;font-size:30px}
+.dock .m.big sup{font-size:19px}

@@ -500,6 +500,17 @@
       renderSolve();
     };
     $('#btnAgain').onclick = function () { show('home'); };
+    // ปัดซ้าย = ตาถัดไป, ปัดขวา = ย้อนกลับ ; ปุ่มลูกศรบนคีย์บอร์ดก็ใช้ได้
+    var sx = null, dock = $('#dock');
+    dock.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; }, { passive: true });
+    dock.addEventListener('touchend', function (e) {
+      if (sx === null) return; var dx = e.changedTouches[0].clientX - sx; sx = null;
+      if (Math.abs(dx) > 50) $(dx < 0 ? '#btnNext' : '#btnPrev').click();
+    });
+    document.addEventListener('keydown', function (e) {
+      if ($('#screen-solve').hidden) return;
+      if (e.key === 'ArrowRight') $('#btnNext').click(); else if (e.key === 'ArrowLeft') $('#btnPrev').click();
+    });
   }
 
   /* ---------- คำนวณ ---------- */

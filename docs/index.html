@@ -145,6 +145,12 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
 
 .fix{border-color:#e9b44c;background:#fff8e6}.fix p{margin:0 0 8px}
 #centerBox .cnt{margin:2px 2px 2px 0}#centerBox p.note{margin-top:6px}
+
+.dock{position:sticky;bottom:0;z-index:5;display:flex;flex-direction:column;gap:8px;background:var(--paper);padding:8px 0 calc(8px + env(safe-area-inset-bottom));box-shadow:0 -10px 12px -8px rgba(251,249,244,1);touch-action:pan-y}
+.dock .btn{min-height:56px;font-size:18px}
+.dock .move{padding:8px 12px}
+.dock .m.big{width:54px;height:60px;font-size:30px}
+.dock .m.big sup{font-size:19px}
 </style>
 </head>
 <body>
@@ -268,6 +274,7 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
     <div class="card hold" id="holdHint"></div>
     <div class="card fix" id="centerNote" hidden></div>
     <div class="card"><div class="net" id="solveNet"></div></div>
+    <div class="dock" id="dock">
     <div class="move" id="moveBox" aria-live="polite">
       <div class="moveStep" id="moveStep"></div>
       <div class="moveTile" id="moveTile"></div>
@@ -277,6 +284,7 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
     <div class="bar">
       <button class="btn" id="btnPrev" type="button" aria-label="ย้อนกลับ 1 ตา">ย้อนกลับ</button>
       <button class="btn primary" id="btnNext" type="button">ตาถัดไป</button>
+    </div>
     </div>
     <div class="row2">
       <button class="btn" id="btnPlay" type="button">เล่นอัตโนมัติ</button>
@@ -1009,6 +1017,17 @@ h2{margin:0 0 6px;font-size:16px;font-weight:700}
       renderSolve();
     };
     $('#btnAgain').onclick = function () { show('home'); };
+    // ปัดซ้าย = ตาถัดไป, ปัดขวา = ย้อนกลับ ; ปุ่มลูกศรบนคีย์บอร์ดก็ใช้ได้
+    var sx = null, dock = $('#dock');
+    dock.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; }, { passive: true });
+    dock.addEventListener('touchend', function (e) {
+      if (sx === null) return; var dx = e.changedTouches[0].clientX - sx; sx = null;
+      if (Math.abs(dx) > 50) $(dx < 0 ? '#btnNext' : '#btnPrev').click();
+    });
+    document.addEventListener('keydown', function (e) {
+      if ($('#screen-solve').hidden) return;
+      if (e.key === 'ArrowRight') $('#btnNext').click(); else if (e.key === 'ArrowLeft') $('#btnPrev').click();
+    });
   }
 
   /* ---------- คำนวณ ---------- */
